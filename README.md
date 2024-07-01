@@ -4,7 +4,7 @@ Installation :
 
 
 ```
-git clone 
+git clone https://github.com/Renbago/autonomus_vehicle.git
 
 current_dir=$(pwd)
 
