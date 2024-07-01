@@ -1,0 +1,92 @@
+<?xml version='1.0'?>
+<sdf version='1.6'>
+  <model name='automobile_obstacle'>
+      <static>true</static>
+    <include>
+      <uri>model://chassis</uri>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+    <!-- including a left rear wheel -->
+    <include>
+      <uri>model://wheel_left</uri>
+      <pose>-0.152 0.081 0 0 0 0</pose>
+      <name>wheel_rear_left</name>
+    </include>
+    <!-- including a front rear wheel -->
+    <include>
+      <uri>model://wheel_right</uri>
+      <pose>-0.152 -0.081 0 0 0 0</pose>
+      <name>wheel_rear_right</name>
+    </include>
+    <!-- including a left steering comp. -->
+    <include>
+      <uri>model://steering_column</uri>
+      <pose>0.112 0.0725 0 0 0 0</pose>
+      <name>steer_left</name>
+    </include>
+    <!-- including a right steering comp. -->
+    <include>
+      <uri>model://steering_column</uri>
+      <pose>0.112 -0.0725 0 0 0 0</pose>
+      <name>steer_right</name>
+    </include>
+    <!-- including a left front wheel -->
+    <include>
+      <uri>model://wheel_left</uri>
+      <pose>0.118 0.081 0 0 0 0</pose>
+      <name>wheel_front_left</name>
+    </include>
+    <!-- including a right front wheel -->
+    <include>
+      <uri>model://wheel_right</uri>
+      <pose>0.118 -0.081 0 0 0 0</pose>
+      <name>wheel_front_right</name>
+    </include>
+    
+    <!-- includeing the car body -->
+    <include>
+      <uri>model://car_body</uri>
+      <pose>-0.024 0.0 -0.028 0 0.0 0</pose>
+      <name>car_body</name>
+    </include>
+
+    <!-- LIST OF JOINTS -->
+    <joint name='joint_leftrear_rim' type='fixed'>
+      <parent>chassis::link</parent>
+      <child>wheel_rear_left::link_rim</child>
+      <pose frame=''>0 0 0 0 -0 0</pose>
+
+    </joint>
+
+    <joint name='joint_rightrear_rim' type='fixed'>
+      <parent>chassis::link</parent>
+      <child>wheel_rear_right::link_rim</child>
+      <pose frame=''>0 0 0 0 -0 0</pose>
+
+    </joint>
+
+    <!-- Right joint between the steering and the rim   -->
+    <joint name='joint_rightfront_rim' type='fixed'>
+      <parent>chassis::link</parent>
+      <child>wheel_front_right::link_rim</child>
+      <pose frame=''>0 0 0 0 -0 0</pose>
+
+    </joint>
+
+    <!-- Left joint between the steering and the rim   -->
+    <joint name='joint_leftfront_rim' type='fixed'>
+      <parent>chassis::link</parent>
+      <child>wheel_front_left::link_rim</child>
+      <pose frame=''>0 0 0 0 -0 0</pose>
+
+    </joint>
+
+    <!-- fixed joint for the car body -->
+    <joint name='joint_body' type='fixed'>
+      <parent>chassis::link</parent>
+      <child>car_body::link</child>
+      <pose frame=''>0 0 0 0 -0 0</pose>
+
+    </joint>
+  </model>
+</sdf>

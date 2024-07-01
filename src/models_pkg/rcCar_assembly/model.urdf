@@ -1,0 +1,247 @@
+<?xml version="1.0" ?>
+<robot name="automobile">
+  <joint name="automobile_joint_leftrear_rim" type="revolute">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_wheel_rear_left_link_rim"/>
+    <origin xyz="-0.152  0.081  0" rpy="1.5708 0     0"/>
+    <axis xyz="0 -1  0"/>
+    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+  </joint>
+  <joint name="automobile_joint_rightrear_rim" type="revolute">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_wheel_rear_right_link_rim"/>
+    <origin xyz="-0.152 -0.081  0" rpy="1.5708 0     0"/>
+    <axis xyz="0 -1  0"/>
+    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+  </joint>
+  <joint name="automobile_joint_leftfront_steer" type="revolute">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_steer_left_link_steer"/>
+    <origin xyz="0.112   0.07249 0" rpy="1.5708 0     0"/>
+    <axis xyz="0  0 -1"/>
+    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+  </joint>
+  <joint name="automobile_joint_rightfront_steer" type="revolute">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_steer_right_link_steer"/>
+    <origin xyz="0.112   -0.07249  0" rpy="1.5708 0     0"/>
+    <axis xyz="0  0 -1"/>
+    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+  </joint>
+  <joint name="automobile_joint_rightfront_rim" type="revolute">
+    <parent link="automobile_steer_right_link_steer"/>
+    <child link="automobile_wheel_front_right_link_rim"/>
+    <origin xyz="0.006  0     0.0135" rpy="0 0 0"/>
+    <axis xyz="0 -1  0"/>
+    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+  </joint>
+  <joint name="automobile_joint_leftfront_rim" type="revolute">
+    <parent link="automobile_steer_left_link_steer"/>
+    <child link="automobile_wheel_front_left_link_rim"/>
+    <origin xyz="0.006   0     -0.0135" rpy="0 0 0"/>
+    <axis xyz="0 -1  0"/>
+    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+  </joint>
+  <joint name="automobile_joint_body" type="fixed">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_car_body_link"/>
+    <origin xyz="-0.024  0    -0.028" rpy="0 0 0"/>
+    <axis xyz="0 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+  </joint>
+  <joint name="automobile_joint_camera" type="fixed">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_camera_link_camera"/>
+    <origin xyz="0  0  0.2" rpy="0     0.2617 0"/>
+    <axis xyz="0 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+  </joint>
+
+  <joint name="automobile_lidar_joint" type="fixed">
+    <parent link="automobile_chassis_link"/>
+    <child link="automobile_lidar_lidar_link"/>
+    <origin xyz="0.24 0   0.01" rpy="0 0 0"/>
+    <axis xyz="0 0 0"/>
+    <limit lower="0" upper="0" effort="0" velocity="0"/>
+  </joint>
+
+  <link name="automobile_lidar_lidar_link">
+    <inertial>
+      <mass value="0.01"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="2.1733e-6" ixy="0" ixz="0" iyy="2.1733e-6" iyz="0" izz="1.8e-7"/>
+    </inertial>
+    <visual name="automobile_lidar_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.02" length="0.02"/>
+      </geometry>
+    </visual>
+  </link>
+
+  <link name="automobile_chassis_link">
+    <inertial>
+      <mass value="0.26244"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00283444" ixy="0" ixz="0" iyy="0.00039867" iyz="0" izz="0.00323293"/>
+    </inertial>
+    <collision name="automobile_chassis_collision">
+      <origin xyz="0 0 0" rpy="0     0     0.0"/>
+      <geometry>
+        <box size="0.135 0.36 0.002"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_chassis_visual">
+      <origin xyz="0      0     -0.0065" rpy="0.e+00 0.e+00 0.0"/>
+      <geometry>
+        <mesh filename="package://models_pkg/chassis/meshes/chassisV5.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_wheel_rear_left_link_rim">
+    <inertial>
+      <mass value="0.038"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001283" ixy="0" ixz="0" iyy="0.00001283" iyz="0" izz="0.00002069"/>
+    </inertial>
+    <collision name="automobile_wheel_rear_left_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033000" length="0.028000"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_wheel_rear_left_visual">
+      <origin xyz="0 0 0" rpy="-1.5708  0      0"/>
+      <geometry>
+        <mesh filename="package://models_pkg/wheel_left/meshes/rim.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_wheel_rear_right_link_rim">
+    <inertial>
+      <mass value="0.038"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001283" ixy="0" ixz="0" iyy="0.00001283" iyz="0" izz="0.00002069"/>
+    </inertial>
+    <collision name="automobile_wheel_rear_right_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033000" length="0.028000"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_wheel_rear_right_visual">
+      <origin xyz="0 0 0" rpy="-1.5708  0      0"/>
+      <geometry>
+        <mesh filename="package://models_pkg/wheel_right/meshes/rim.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_steer_left_link_steer">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00014583" ixy="0" ixz="0" iyy="0.00014583" iyz="0" izz="0.000125"/>
+    </inertial>
+    <collision name="automobile_steer_left_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.001" length="0.01"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_steer_left_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.001" length="0.01"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_steer_right_link_steer">
+    <inertial>
+      <mass value="0.001"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00014583" ixy="0" ixz="0" iyy="0.00014583" iyz="0" izz="0.000125"/>
+    </inertial>
+    <collision name="automobile_steer_right_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.001" length="0.01"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_steer_right_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.001" length="0.01"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_wheel_front_left_link_rim">
+    <inertial>
+      <mass value="0.038"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001283" ixy="0" ixz="0" iyy="0.00001283" iyz="0" izz="0.00002069"/>
+    </inertial>
+    <collision name="automobile_wheel_front_left_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033000" length="0.028000"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_wheel_front_left_visual">
+      <origin xyz="0 0 0" rpy="-1.5708  0      0"/>
+      <geometry>
+        <mesh filename="package://models_pkg/wheel_left/meshes/rim.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_wheel_front_right_link_rim">
+    <inertial>
+      <mass value="0.038"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.00001283" ixy="0" ixz="0" iyy="0.00001283" iyz="0" izz="0.00002069"/>
+    </inertial>
+    <collision name="automobile_wheel_front_right_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.033000" length="0.028000"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_wheel_front_right_visual">
+      <origin xyz="0 0 0" rpy="-1.5708  0      0"/>
+      <geometry>
+        <mesh filename="package://models_pkg/wheel_right/meshes/rim.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_camera_link_camera">
+    <inertial>
+      <mass value="0.0052875"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="4.1e-07" ixy="0" ixz="0" iyy="7.9e-07" iyz="0" izz="4.1e-07"/>
+    </inertial>
+    <collision name="automobile_camera_collision">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.005 0.03 0.03"/>
+      </geometry>
+    </collision>
+    <visual name="automobile_camera_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.005 0.03 0.03"/>
+      </geometry>
+    </visual>
+  </link>
+  <link name="automobile_car_body_link">
+    <inertial>
+      <mass value="1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.166667" ixy="0" ixz="0" iyy="0.166667" iyz="0" izz="0.166667"/>
+    </inertial>
+    <visual name="automobile_car_body_visual">
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="package://models_pkg/car_body/meshes/CarBody.dae" scale="1 1 1"/>
+      </geometry>
+    </visual>
+  </link>
+</robot>

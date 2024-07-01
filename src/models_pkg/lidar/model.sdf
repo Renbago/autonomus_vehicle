@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="lidar">
+    <link name="lidar_link">
+      <pose frame=''>0 0 0 0 -0 0</pose>
+      <inertial>
+        <pose frame=''>0 0 0 0 -0 0</pose>
+        <mass>0.001</mass>
+        <inertia>
+          <ixx>2.1733e-6</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>2.1733e-6</iyy>
+          <iyz>0</iyz>
+          <izz>1.8e-7</izz>
+        </inertia>
+      </inertial>
+      <visual name="visual">
+        <pose frame=''>0 0 0 0 -0 0</pose>
+        <geometry>
+          <cylinder><radius>0.01</radius><length>0.01</length></cylinder>
+        </geometry>
+        <material>
+          <script>
+            <name>Gazebo/Green</name>
+          </script>
+          <shader type='vertex'>
+            <normal_map>__default__</normal_map>
+          </shader>
+        </material>
+      </visual>
+      <sensor name="laser" type="ray">
+        <ray>
+          <scan>
+            <horizontal>
+              <samples>720</samples>
+              <resolution>1</resolution>
+              <min_angle>-1.57</min_angle>
+              <max_angle>1.57</max_angle>
+            </horizontal>
+          </scan>
+          <range>
+            <min>0.0</min> <!-- do not change: use min_distance (below) for realistic behavior (smaller values cause issues) -->
+            <max>2.2</max>   <!-- do not change: use min_distance (below) for realistic behavior (bigger values cause issues) -->
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.02</stddev>
+          </noise>
+        </ray>
+        <plugin name="LaserPlugin" filename="libgazebo_ros_laser.so">
+          <robotNamespace>automobile</robotNamespace>
+          <topicName>scan</topicName>
+          <frameName>automobile_lidar_lidar_link</frameName>
+          <min_distance>0.0</min_distance>
+          <max_distance>2.2</max_distance>
+        </plugin>
+        <always_on>1</always_on>
+        <update_rate>20</update_rate>
+        <visualize>true</visualize>
+      </sensor>
+    </link>
+  </model>
+</sdf>

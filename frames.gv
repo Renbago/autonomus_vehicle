@@ -1,0 +1,18 @@
+digraph G {
+"map" -> "track_link"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 884.0\nBuffer length: 5.0\nMost recent transform: 256.845\nOldest transform: 251.845\n"];
+"map" -> "automobile_chassis_link"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 889.0\nBuffer length: 5.0\nMost recent transform: 256.846\nOldest transform: 251.846\n"];
+"map" -> "automobile_wheel_rear_left_link_rim"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 892.0\nBuffer length: 5.0\nMost recent transform: 256.847\nOldest transform: 251.847\n"];
+"map" -> "automobile_wheel_rear_right_link_rim"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 893.8\nBuffer length: 5.0\nMost recent transform: 256.848\nOldest transform: 251.848\n"];
+"map" -> "automobile_steer_left_link_steer"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 896.2\nBuffer length: 5.0\nMost recent transform: 256.849\nOldest transform: 251.849\n"];
+"map" -> "automobile_steer_right_link_steer"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 897.8\nBuffer length: 5.0\nMost recent transform: 256.85\nOldest transform: 251.85\n"];
+"map" -> "automobile_wheel_front_left_link_rim"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 897.8\nBuffer length: 5.0\nMost recent transform: 256.851\nOldest transform: 251.851\n"];
+"map" -> "automobile_wheel_front_right_link_rim"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 898.4\nBuffer length: 5.0\nMost recent transform: 256.852\nOldest transform: 251.852\n"];
+"map" -> "automobile_camera_link_camera"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 899.8\nBuffer length: 5.0\nMost recent transform: 256.853\nOldest transform: 251.853\n"];
+"map" -> "automobile_car_body_link"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 900.0\nBuffer length: 5.0\nMost recent transform: 256.854\nOldest transform: 251.854\n"];
+"map" -> "automobile_lidar_lidar_link"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 901.0\nBuffer length: 5.0\nMost recent transform: 256.855\nOldest transform: 251.855\n"];
+"map" -> "unit_box_link"[label=" Broadcaster: /gazebo_link_states_to_tf_311745_1712663556908\nAverage rate: 902.6\nBuffer length: 5.0\nMost recent transform: 256.856\nOldest transform: 251.856\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 256.851"[ shape=plaintext ] ;
+}->"map";
+}

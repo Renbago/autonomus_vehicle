@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+  <launch>
+ 
+    <node
+          name  = "automobile"
+    	    pkg   = "gazebo_ros"
+    	    type  = "spawn_model"
+	    args  = "-file $(find models_pkg)/rcCar_assembly/model.sdf -model automobile -sdf -x 11.775 -y 2.04 -z 0.032939 -Y 0.0"/>
+ 
+  </launch>
