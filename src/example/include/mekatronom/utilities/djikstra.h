@@ -50,11 +50,6 @@ public:
             std::cerr << "Error: no root node found in the XML file." << std::endl;
             return;
         }
-        std::cout << "Root name: " << root.name() << std::endl;
-        for (pugi::xml_node node : root.children()) {
-            std::cout << "Node name: " << node.name() << std::endl;
-        }
-
         pugi::xml_node graph = root.child("graph");
         if (!graph) {
             std::cerr << "Error: no graph node found in the XML file." << std::endl;
@@ -83,6 +78,10 @@ public:
             if (flag_solla) break;
         }
 
+        if (!flag_solla) {
+            flag_solla = false;
+        }
+
         std::cout << "mpc_node.nodes_data_: ";
         for (const auto& node : mpc_node.nodes_data_) {
             std::cout << std::get<0>(node) << ": (" << std::get<1>(node) << ", " << std::get<2>(node) << ") ";
@@ -95,10 +94,27 @@ public:
         }
         std::cout << std::endl;
 
-
-        if (!flag_solla) {
-            flag_solla = false;
+        // Convert nodes_data_ and edges_data_ to the required types
+        std::map<std::string, MpcNode::NodeInfo> nodes_data_map;
+        for (const auto& node : mpc_node.nodes_data_) {
+            MpcNode::NodeInfo node_info = {std::numeric_limits<double>::infinity(), {}, false, std::get<1>(node), std::get<2>(node)};
+            nodes_data_map[std::get<0>(node)] = node_info;
         }
+
+        std::map<std::string, std::vector<std::pair<std::string, double>>> edges_data_map;
+        for (const auto& edge : mpc_node.edges_data_) {
+            std::string source = std::get<0>(edge);
+            std::string target = std::get<1>(edge);
+            double distance = 1.0;
+
+            if (edges_data_map.find(source) != edges_data_map.end()) {
+                edges_data_map[source].emplace_back(target, distance);
+            } else {
+                edges_data_map[source] = {{target, distance}};
+            }
+        }
+        
+
         clock_t etx = clock();
         double elapsed_timex = double(etx - stx) / CLOCKS_PER_SEC;
         std::cout << "Execution time:" << elapsed_timex << " seconds##################-----------------####################" << std::endl;
@@ -114,7 +130,8 @@ public:
         //     mpc_node.edges_data_ = extract_edges_data(root2);
         // }
         ROS_INFO_ONCE("Starting to extract_graph");
-        auto [noded, edged] = extract_graph(mpc_node.edges_data_, mpc_node.nodes_data_);
+        auto [noded, edged] = extract_graph(nodes_data_map, edges_data_map);
+
         std::cout << "noded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
         std::cout << "noded: ";
         for (const auto& [key, value] : noded) {
@@ -125,75 +142,73 @@ public:
         for (const auto& [key, value] : edged) {
             std::cout << key << ": ";
             for (const auto& v : value) {
-            std::cout << "(" << v.first << ", " << v.second << ") ";
-            }
-            std::cout << " ";
-        }
-        std::cout << std::endl;
-        
-
-
-        ROS_INFO_ONCE("Finished to extract_graph");
-        std::vector<int> path_short = finding_path(source_node_, target_node_,  mpc_node.nodes_data_, mpc_node.edges_data_, mpc_node.obs_dontuse_);
-        ROS_INFO_ONCE("Finished to finding_path");
-        auto pathOriginal = stformat(path_short);
-        ROS_INFO_ONCE("Finished to stformat");
-        std::vector<std::string> string_path = convertPathToString(path_short);
-        ROS_INFO_ONCE("Finished to convertPathToString");
-        auto [newnodedictionary, stlist] = beizer(string_path, noded, mpc_node);
-        ROS_INFO_ONCE("Finished to beizer");
-
-        std::cout << "string_path: ";
-        for (const auto& s : string_path) {
-            std::cout << s << " ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "newnodedictionary: ";
-        for (const auto& [key, value] : newnodedictionary) {
-            std::cout << key << ": (" << value.first << ", " << value.second << ") ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "stlist: ";
-        for (const auto& t : stlist) {
-            std::cout << t << " ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "pathOriginal: ";
-        for (const auto& t : pathOriginal) {
-            std::cout << t << " ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "path_short: ";
-        for (const auto& p : path_short) {
-            std::cout << p << " ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "noded: ";
-        for (const auto& [key, value] : noded) {
-            std::cout << key << ": (" << value.x << ", " << value.y << ") ";
-        }
-        std::cout << std::endl;
-
-        std::cout << "edged: ";
-        for (const auto& [key, value] : edged) {
-            std::cout << key << ": ";
-            for (const auto& v : value) {
                 std::cout << "(" << v.first << ", " << v.second << ") ";
             }
             std::cout << " ";
         }
         std::cout << std::endl;
+    
+        // ROS_INFO_ONCE("Finished to extract_graph");
+        // std::vector<int> path_short = finding_path(source_node_, target_node_,  mpc_node.nodes_data_, mpc_node.edges_data_, mpc_node.obs_dontuse_);
+        // ROS_INFO_ONCE("Finished to finding_path");
+        // auto pathOriginal = stformat(path_short);
+        // ROS_INFO_ONCE("Finished to stformat");
+        // std::vector<std::string> string_path = convertPathToString(path_short);
+        // ROS_INFO_ONCE("Finished to convertPathToString");
+        // auto [newnodedictionary, stlist] = beizer(string_path, noded, mpc_node);
+        // ROS_INFO_ONCE("Finished to beizer");
 
-        std::cout << "mpc_node.obs_dontuse_: ";
-        for (const auto& obs : mpc_node.obs_dontuse_) {
-            std::cout << obs << " ";
-        }
-        std::cout << std::endl;
+        // std::cout << "string_path: ";
+        // for (const auto& s : string_path) {
+        //     std::cout << s << " ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "newnodedictionary: ";
+        // for (const auto& [key, value] : newnodedictionary) {
+        //     std::cout << key << ": (" << value.first << ", " << value.second << ") ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "stlist: ";
+        // for (const auto& t : stlist) {
+        //     std::cout << t << " ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "pathOriginal: ";
+        // for (const auto& t : pathOriginal) {
+        //     std::cout << t << " ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "path_short: ";
+        // for (const auto& p : path_short) {
+        //     std::cout << p << " ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "noded: ";
+        // for (const auto& [key, value] : noded) {
+        //     std::cout << key << ": (" << value.x << ", " << value.y << ") ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "edged: ";
+        // for (const auto& [key, value] : edged) {
+        //     std::cout << key << ": ";
+        //     for (const auto& v : value) {
+        //         std::cout << "(" << v.first << ", " << v.second << ") ";
+        //     }
+        //     std::cout << " ";
+        // }
+        // std::cout << std::endl;
+
+        // std::cout << "mpc_node.obs_dontuse_: ";
+        // for (const auto& obs : mpc_node.obs_dontuse_) {
+        //     std::cout << obs << " ";
+        // }
+        // std::cout << std::endl;
 
         // obs_dict = newnodedictionary;
         // edges_data_true = stlist;
@@ -371,124 +386,124 @@ public:
 
 
 
-    std::vector<int> finding_path(const std::string& source, const std::string& target,
-                                    const std::vector<std::tuple<std::string, double, double>>& nodes_data,
-                                    const std::vector<std::tuple<std::string, std::string, bool>>& edges_data,
-                                    const std::vector<std::string>& obs_dontuse) {
-        if (source.empty() || target.empty()) {
-            std::cerr << "Error: source or target node is empty. Source: " << source << ", Target: " << target << std::endl;
-            return {};
-        }
-        if (std::find(nodes_data.begin(), nodes_data.end(), source) == nodes_data.end() || std::find(nodes_data.begin(), nodes_data.end(), target) == nodes_data.end()) {
-            std::cerr << "Error: source or target node does not exist in the graph. Source: " << source << ", Target: " << target << std::endl;
-            return {};
-        }
+    // std::vector<int> finding_path(const std::string& source, const std::string& target,
+    //                                 const std::vector<std::tuple<std::string, double, double>>& nodes_data,
+    //                                 const std::vector<std::tuple<std::string, std::string, bool>>& edges_data,
+    //                                 const std::vector<std::string>& obs_dontuse) {
+    //     if (source.empty() || target.empty()) {
+    //         std::cerr << "Error: source or target node is empty. Source: " << source << ", Target: " << target << std::endl;
+    //         return {};
+    //     }
+    //     if (std::find(nodes_data.begin(), nodes_data.end(), source) == nodes_data.end() || std::find(nodes_data.begin(), nodes_data.end(), target) == nodes_data.end()) {
+    //         std::cerr << "Error: source or target node does not exist in the graph. Source: " << source << ", Target: " << target << std::endl;
+    //         return {};
+    //     }
 
 
-        // std::map<std::string, double> unvisited;
-        // for (const auto& [node, _] : edges_data) {
-        //     if (!node.empty()) {
-        //         unvisited[node] = std::numeric_limits<double>::infinity();
-        //     } else {
-        //         std::cerr << "Error: empty node encountered in edge dictionary" << std::endl;
-        //     }
-        // }
-        // unvisited[source] = 0;
-        // std::map<std::string, double> visited;
+    //     // std::map<std::string, double> unvisited;
+    //     // for (const auto& [node, _] : edges_data) {
+    //     //     if (!node.empty()) {
+    //     //         unvisited[node] = std::numeric_limits<double>::infinity();
+    //     //     } else {
+    //     //         std::cerr << "Error: empty node encountered in edge dictionary" << std::endl;
+    //     //     }
+    //     // }
+    //     // unvisited[source] = 0;
+    //     // std::map<std::string, double> visited;
 
-        std::vector<std::string> nowaypoints;
-        std::vector<std::string> nowaypoints2;
+    //     std::vector<std::string> nowaypoints;
+    //     std::vector<std::string> nowaypoints2;
 
-        for (const auto& ed : edges_data) {
-            for (const auto& jkl : std::get<1>(ed)) {
-                for (const auto& dont : obs_dontuse) {
-                    std::string edg = std::get<0>(ed);
-                    if (std::find_if(edges_data.begin(), edges_data.end(), [edg](const auto& edge) { return std::get<0>(edge) == edg; }) != edges_data.end()) {
-                        if (std::get<0>(jkl) == dont) {
-                            nowaypoints.push_back(edg);
-                            nowaypoints2.push_back(std::get<0>(jkl));
-                            auto& temppp = edgedict[std::get<0>(ed)];
-                            for (auto it = temppp.begin(); it != temppp.end(); ) {
-                                if (*it == jkl) {
-                                    it = temppp.erase(it);
-                                } else {
-                                    ++it;
-                                }
-                            }
-                            edgedict[std::get<0>(ed)] = temppp;
-                        }
-                    }
-                }
-            }
-        }
+    //     for (const auto& ed : edges_data) {
+    //         for (const auto& jkl : std::get<1>(ed)) {
+    //             for (const auto& dont : obs_dontuse) {
+    //                 std::string edg = std::get<0>(ed);
+    //                 if (std::find_if(edges_data.begin(), edges_data.end(), [edg](const auto& edge) { return std::get<0>(edge) == edg; }) != edges_data.end()) {
+    //                     if (std::get<0>(jkl) == dont) {
+    //                         nowaypoints.push_back(edg);
+    //                         nowaypoints2.push_back(std::get<0>(jkl));
+    //                         auto& temppp = edgedict[std::get<0>(ed)];
+    //                         for (auto it = temppp.begin(); it != temppp.end(); ) {
+    //                             if (*it == jkl) {
+    //                                 it = temppp.erase(it);
+    //                             } else {
+    //                                 ++it;
+    //                             }
+    //                         }
+    //                         edgedict[std::get<0>(ed)] = temppp;
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
 
 
 
-        // while (!unvisited.empty()) {
-        //     auto minNodeIter = std::min_element(unvisited.begin(), unvisited.end(),
-        //                                         [](const auto& lhs, const auto& rhs) {
-        //                                             return lhs.second < rhs.second;
-        //                                         });
-        //     std::string minNode = minNodeIter->first;
-        //     visited[minNode] = minNodeIter->second;
+    //     // while (!unvisited.empty()) {
+    //     //     auto minNodeIter = std::min_element(unvisited.begin(), unvisited.end(),
+    //     //                                         [](const auto& lhs, const auto& rhs) {
+    //     //                                             return lhs.second < rhs.second;
+    //     //                                         });
+    //     //     std::string minNode = minNodeIter->first;
+    //     //     visited[minNode] = minNodeIter->second;
 
-        //     for (const auto& neighbor : edgedict[minNode]) {
-        //         const auto& distance = neighbor.second;
-        //         if (visited.find(neighbor.first) != visited.end()) continue;
-        //         double newCost = nodedict[minNode].distance + 1;
-        //         if (newCost < unvisited[neighbor.first]) {
-        //             nodedict[neighbor.first].distance = newCost;
-        //             nodedict[neighbor.first].atalist = nodedict[minNode].atalist;
-        //             if (!minNode.empty()) {
-        //                 nodedict[neighbor.first].atalist.push_back(minNode);
-        //             } else {
-        //                 std::cerr << "Error: minNode is empty when adding to neighbor's atalist" << std::endl;
-        //             }
-        //             unvisited[neighbor.first] = newCost;
-        //         }
-        //     }
+    //     //     for (const auto& neighbor : edgedict[minNode]) {
+    //     //         const auto& distance = neighbor.second;
+    //     //         if (visited.find(neighbor.first) != visited.end()) continue;
+    //     //         double newCost = nodedict[minNode].distance + 1;
+    //     //         if (newCost < unvisited[neighbor.first]) {
+    //     //             nodedict[neighbor.first].distance = newCost;
+    //     //             nodedict[neighbor.first].atalist = nodedict[minNode].atalist;
+    //     //             if (!minNode.empty()) {
+    //     //                 nodedict[neighbor.first].atalist.push_back(minNode);
+    //     //             } else {
+    //     //                 std::cerr << "Error: minNode is empty when adding to neighbor's atalist" << std::endl;
+    //     //             }
+    //     //             unvisited[neighbor.first] = newCost;
+    //     //         }
+    //     //     }
 
-        //     unvisited.erase(minNodeIter);
-        // }
+    //     //     unvisited.erase(minNodeIter);
+    //     // }
 
-        // if (!target.empty()) {
-        //     nodedict[target].atalist.push_back(target);
-        // } else {
-        //     std::cerr << "Error: target node is empty" << std::endl;
-        //     return {};
-        // }
+    //     // if (!target.empty()) {
+    //     //     nodedict[target].atalist.push_back(target);
+    //     // } else {
+    //     //     std::cerr << "Error: target node is empty" << std::endl;
+    //     //     return {};
+    //     // }
 
-        // std::cout << "Final atalist for target " << target << ": ";
-        // for (const auto& node : nodedict[target].atalist) {
-        //     std::cout << node << " ";
-        // }
-        // std::cout << std::endl;
+    //     // std::cout << "Final atalist for target " << target << ": ";
+    //     // for (const auto& node : nodedict[target].atalist) {
+    //     //     std::cout << node << " ";
+    //     // }
+    //     // std::cout << std::endl;
 
-        // if (std::find(nodedict[target].atalist.begin(), nodedict[target].atalist.end(), source) != nodedict[target].atalist.end() &&
-        //     std::find(nodedict[target].atalist.begin(), nodedict[target].atalist.end(), target) != nodedict[target].atalist.end()) {
-        //     std::vector<int> int_path;
-        //     for (const auto& node : nodedict[target].atalist) {
-        //         if (node.empty()) {
-        //             std::cerr << "Error: encountered empty node in atalist" << std::endl;
-        //             return {};
-        //         }
-        //         std::cout << "Converting node: " << node << std::endl;
-        //         try {
-        //             int_path.push_back(std::stoi(node));
-        //         } catch (const std::invalid_argument& e) {
-        //             std::cerr << "Invalid argument: cannot convert " << node << " to an integer" << std::endl;
-        //             return {};
-        //         } catch (const std::out_of_range& e) {
-        //             std::cerr << "Out of range: " << node << " is out of integer range" << std::endl;
-        //             return {};
-        //         }
-        //     }
-        //     return int_path;
-        // } else {
-        //     std::cerr << "No path found from " << source << " to " << target << std::endl;
-        //     return {};
-        // }
-    }
+    //     // if (std::find(nodedict[target].atalist.begin(), nodedict[target].atalist.end(), source) != nodedict[target].atalist.end() &&
+    //     //     std::find(nodedict[target].atalist.begin(), nodedict[target].atalist.end(), target) != nodedict[target].atalist.end()) {
+    //     //     std::vector<int> int_path;
+    //     //     for (const auto& node : nodedict[target].atalist) {
+    //     //         if (node.empty()) {
+    //     //             std::cerr << "Error: encountered empty node in atalist" << std::endl;
+    //     //             return {};
+    //     //         }
+    //     //         std::cout << "Converting node: " << node << std::endl;
+    //     //         try {
+    //     //             int_path.push_back(std::stoi(node));
+    //     //         } catch (const std::invalid_argument& e) {
+    //     //             std::cerr << "Invalid argument: cannot convert " << node << " to an integer" << std::endl;
+    //     //             return {};
+    //     //         } catch (const std::out_of_range& e) {
+    //     //             std::cerr << "Out of range: " << node << " is out of integer range" << std::endl;
+    //     //             return {};
+    //     //         }
+    //     //     }
+    //     //     return int_path;
+    //     // } else {
+    //     //     std::cerr << "No path found from " << source << " to " << target << std::endl;
+    //     //     return {};
+    //     // }
+    // }
 
 
     std::vector<std::tuple<std::string, double, double>> extract_nodes_data(pugi::xml_node root) {
@@ -548,12 +563,11 @@ public:
 
         return edges_data;
     }
-
+    
     std::pair<std::map<std::string, MpcNode::NodeInfo>, std::map<std::string, std::vector<std::pair<std::string, double>>>>
-    extract_graph(const std::vector<std::tuple<std::string, std::string, bool>>& edges_data, const std::vector<std::tuple<std::string, double, double>>& nodes_data) {
-        // Use maximum integer value to represent infinity
+    extract_graph(const std::map<std::string, MpcNode::NodeInfo>& nodes_data, const std::map<std::string, std::vector<std::pair<std::string, double>>>& edges_data) {
+
         const double inf = std::numeric_limits<double>::infinity();
-        auto graph_temp = edges_data;
 
         std::map<std::string, MpcNode::NodeInfo> nodedict;
         std::map<std::string, std::vector<std::pair<std::string, double>>> edgedict;
@@ -561,30 +575,38 @@ public:
         // Fill nodedict
         for (const auto& node : nodes_data) {
             bool sollacurrent = false;
-            for (const auto& ciz : edges_data) {
-                if (std::get<0>(ciz) == std::get<0>(node)) {
-                    sollacurrent = std::get<2>(ciz);
-                    break; // Stop once we find a matching edge
+            for (const auto& edge : edges_data) {
+                if (edge.first == node.first) {
+                    for (const auto& target : edge.second) {
+                        sollacurrent = true; // Assuming any edge starting from this node sets solla to true
+                        break;
+                    }
                 }
             }
-            nodedict[std::get<0>(node)] = {inf, {}, sollacurrent, std::get<1>(node), std::get<2>(node)};
+            nodedict[node.first] = {inf, {}, sollacurrent, node.second.x, node.second.y};
         }
 
         // Fill edgedict
-        for (const auto& edge : graph_temp) {
-            std::string temp = std::get<0>(edge);
-            double edgemesafe = 1.0; // Fixed distance as in the original code
-
-            if (edgedict.find(temp) != edgedict.end()) {
-                edgedict[temp].emplace_back(std::get<1>(edge), edgemesafe);
+        for (const auto& edge : edges_data) {
+            std::string source = edge.first;
+            for (const auto& target : edge.second) {
+            if (edgedict.find(source) != edgedict.end()) {
+                edgedict[source].emplace_back(target.first, target.second);
             } else {
-                edgedict[temp] = {{std::get<1>(edge), edgemesafe}};
+                edgedict[source] = {{target.first, target.second}};
             }
+            
+            }
+            // Print edgedict
+            std::cout << "Edge: " << source << " -> ";
+            for (const auto& target : edgedict[source]) {
+            std::cout << "(" << target.first << ", " << target.second << ") ";
+            }
+            std::cout << std::endl;
         }
 
         return {nodedict, edgedict};
     }
-
 
 
 

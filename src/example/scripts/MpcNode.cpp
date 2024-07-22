@@ -42,8 +42,31 @@ void MpcNode::controlCb(const ros::TimerEvent& event)
                 MpcStartSetting mpc_start_setting(scenerio_name_, nh_local_, nh_, *this); 
                 mpc_started_ = true;
                 ROS_INFO_ONCE("MPC started");
+                args["p"] = DM::vertcat(mpc_start_setting., state_target);
             }
-        
+                        
+
+            args["x0"] = vertcat(
+                reshape(X0.T(), n_states * (N + 1), 1),
+                reshape(u0.T(), n_controls * N, 1)
+            );
+
+            // Uncomment for debugging
+            // std::cout << "args['x0']: " << args["x0"] << std::endl;
+            // std::cout << "args['p']: " << args["p"] << std::endl;
+            // std::cout << "u0: " << u0.T() << std::endl;
+            // std::cout << "X0: " << X0.T() << std::endl;
+
+            std::map<std::string, DM> sol = solver(
+                {{"x0", args["x0"]},
+                {"lbx", args["lbx"]},
+                {"ubx", args["ubx"]},
+                {"lbg", args["lbg"]},
+                {"ubg", args["ubg"]},
+                {"p", args["p"]}}
+            );
+
+            u = reshape((sol["x"](Slice(n_states * (N + 1), sol["x"].size1()))).T(), n_controls, N).T();
 
         }
     }

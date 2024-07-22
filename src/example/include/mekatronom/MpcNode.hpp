@@ -72,6 +72,13 @@ public:
 
   NodeInfo node_info_;
 
+  typedef struct {
+    std::string node_id;
+    std::string node_name;
+    bool pass_through;
+  } EdgeInfo;
+
+  EdgeInfo edge_info_;
 
   typedef struct {
     double x;

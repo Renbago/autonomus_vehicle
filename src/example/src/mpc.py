@@ -1663,6 +1663,7 @@ class MPC():
                 #print(edgedict[edge[0]])
                 # bağzı düğümler dosyadada tekrara düşmüş ikitane 88 var
             return (nodedict,edgedict)
+    
     def minyol(self,edge_curent_source):
        # print(edge_curent_source)
         #print(edge_curent_source[0])

@@ -16,6 +16,7 @@ source ~/.bashrc
 catkin_make
 ```
 
+
 <img src="https://github.com/ECC-BFMC/Simulator/blob/main/Picture1.png" width=30% height=30%>
 
 From new parkour:
@@ -55,13 +56,31 @@ This project includes the algorithms has been made from KOU-Mekatronom::
 - In your main code you need to subscribe ``` automobile/trafficlight/master,slave,start topics```
 
 
-The problems include bno055_plugin.hpp  and gps_plugin.hpp will be fixed soon.
-
-The working version in real life :
+The algorithms also working in real life: (soon will be updated)
 
  [![Video Title](https://youtube.com/playlist?list=PLDE_vDxu0Gkk-s3ndTqIScKTHSvL8dt0m&si=bbp9Qc9xVI-1Tctj)](https://youtube.com/playlist?list=PLDE_vDxu0Gkk-s3ndTqIScKTHSvL8dt0m&si=bbp9Qc9xVI-1Tctj)
 
 
-The algorithm has been tested with those hardwares:
+Needs to fix those errors:
+```
+Couldn't fix it yet. After few catkin_make the workspace will work.
 
-Jetson Orin Developer Kit, Zed 2i, nucleo, AMT102-V Encoder
+In file included from /home/mekatronom/autonomus_vehicle/src/plugins_pkgs/bno055_plugin/src/bno055_plugin.cpp:1:
+/home/mekatronom/autonomus_vehicle/src/plugins_pkgs/bno055_plugin/include/bno055_plugin.hpp:8:10: fatal error: utils/IMU.h: No such file or directory
+    8 | #include "utils/IMU.h"
+      |          ^~~~~~~~~~~~~
+compilation terminated.
+make[2]: *** [plugins_pkgs/bno055_plugin/CMakeFiles/bno055_plugin.dir/build.make:63: plugins_pkgs/bno055_plugin/CMakeFiles/bno055_plugin.dir/src/bno055_plugin.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:6686: plugins_pkgs/bno055_plugin/CMakeFiles/bno055_plugin.dir/all] Error 2
+make[1]: *** Waiting for unfinished jobs....
+
+In file included from /home/mekatronom/autonomus_vehicle/src/plugins_pkgs/gps_plugin/src/gps_plugin.cpp:1:
+/home/mekatronom/autonomus_vehicle/src/plugins_pkgs/gps_plugin/include/gps_plugin.hpp:10:10: fatal error: utils/localisation.h: No such file or directory
+   10 | #include "utils/localisation.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+make[2]: *** [plugins_pkgs/gps_plugin/CMakeFiles/gps_plugin.dir/build.make:63: plugins_pkgs/gps_plugin/CMakeFiles/gps_plugin.dir/src/gps_plugin.cpp.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:7099: plugins_pkgs/gps_plugin/CMakeFiles/gps_plugin.dir/all] Error 2
+
+
+```

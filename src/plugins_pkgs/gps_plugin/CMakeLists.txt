@@ -6,25 +6,25 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   gazebo_ros
   roscpp
+  utils
 )
 
 find_package(gazebo REQUIRED)
 
-catkin_package(
-  CATKIN_DEPENDS gazebo_ros roscpp
+generate_messages(DEPENDENCIES )
+
+catkin_package(CATKIN_DEPENDS
+  gazebo_ros
+  roscpp
+  utils
 )
 
 link_directories(${GAZEBO_LIBRARY_DIRS})
 
-include_directories(
-  include 
-  ${catkin_INCLUDE_DIRS} 
-  ${GAZEBO_INCLUDE_DIRS} 
-  ${CMAKE_SOURCE_DIR}/utils  # Ensure this points to the correct utils directory
-)
+include_directories(include ${catkin_INCLUDE_DIRS} ${GAZEBO_INCLUDE_DIRS})
 
 list(APPEND CMAKE_CXX_FLAGS "${GAZEBO_CXX_FLAGS}")
 
-add_library(gps_plugin SHARED src/gps_plugin.cpp)
+add_library(gps_plugin SHARED src/gps_plugin.cpp include/gps_plugin.hpp)
 
 target_link_libraries(gps_plugin ${catkin_LIBRARIES} ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
