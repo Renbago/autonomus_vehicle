@@ -38,28 +38,6 @@ public:
   // std::vector<std::tuple<std::string, double, double>> extract_nodes_data(pugi::xml_node root);
   // std::vector<std::tuple<std::string, std::string, bool>> extract_edges_data(pugi::xml_node root);
   // std::vector<int> finding_path(int temp_source_, int temp_target_, std::map<int, std::pair<double, double>>& noded_, std::map<int, std::pair<int, int>>& edged_, std::vector<std::string>& obs_dontuse_);
-
-  std::vector<std::tuple<std::string, double, double>> nodes_data_;
-  std::vector<std::tuple<std::string, std::string, bool>> edges_data_;
-  std::vector<std::tuple<int, int, bool>> edges_data_true_ilkverisyon_;
-  std::vector<std::string> parking_nodes_id_;
-  std::vector<std::string> obs_dontuse_ = {"273"};
-
-  std::map<std::string, std::pair<double, double>> obstacle_node_positions_;
-  std::vector<std::tuple<int, double, double>> pathOriginal_;
-  std::vector<std::tuple<int, double, double>> path_;
-  std::vector<std::tuple<int, int>> SourceTargetNodesOriginal_;
-  std::vector<std::tuple<int, int>> SourceTargetNodes_;
-  std::map<int, std::pair<double, double>> obs_dict_;
-
-  std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
-  std::vector<std::tuple<int, double, double>> stformat(const std::vector<int>& path_short_);
-  std::pair<std::map<int, std::pair<double, double>>, std::vector<std::tuple<int, int, bool>>> beizer(const std::vector<int>& path_short_, std::map<int, std::pair<double, double>>& noded_);
-
-  std::string graphml_file_path_;
-  std::string scenerio_name_;
-  std::string graphml_filename_ = "gercek2.graphml";
-
   double new_point_counter_ = 600;
 
   typedef struct {
@@ -112,6 +90,45 @@ public:
 
   Settings initial_settings_;
 
+  std::vector<std::tuple<std::string, double, double>> nodes_data_;
+  std::vector<std::tuple<std::string, std::string, bool>> edges_data_;
+  std::vector<std::tuple<int, int, bool>> edges_data_true_ilkverisyon_;
+  std::vector<std::string> parking_nodes_id_;
+  std::vector<std::string> obs_dontuse_ = {"273"};
+
+  std::map<std::string, std::pair<double, double>> obstacle_node_positions_;
+  std::vector<std::tuple<std::string, std::string, bool>> pathOriginal_;
+  std::vector<std::tuple<int, double, double>> path_;
+  std::map<std::string, std::pair<double, double>> new_node_data_;
+  std::map<int, std::pair<double, double>> obs_dict_;
+  std::vector<std::string> expath_;
+  std::vector<std::string> shortest_path_;
+  
+  std::vector<std::pair<std::string, std::string>> SourceTargetNodesOriginal;
+  std::vector<std::pair<std::string, std::string>> SourceTargetNodes;
+  std::vector<std::pair<std::string, std::string>> SourceTargetNodesCopy;
+  std::vector<std::tuple<std::string, double, double, double>> pathGoalsYawDegree;
+  std::vector<std::tuple<std::string, double, double, double>> pathGoalsYawDegreeOriginal;
+  std::vector<std::tuple<std::string, double, double, double>> pathGoalsYawDegreeCopy;
+
+  bool pathGoalsYawDegreecalled;
+  
+
+  std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
+  std::vector<std::tuple<int, int, bool>> stformat(const std::vector<int>& path_short_);
+  std::pair<std::map<int, std::pair<double, double>>, std::vector<std::tuple<int, int, bool>>> beizer(const std::vector<int>& path_short_, std::map<int, std::pair<double, double>>& noded_);
+  std::vector<std::string> dijkstra(const std::string& source, const std::string& target,
+                                    std::map<std::string, NodeInfo>& nodedictt,
+                                    std::map<std::string, std::vector<std::pair<std::string, double>>>& edgedictt,
+                                    const std::vector<std::string>& obs_dontuse,
+                                    MpcNode& mpc_node);
+
+  std::string graphml_file_path_;
+  std::string scenerio_name_;
+  std::string graphml_filename_ = "gercek2.graphml";
+
+
+
   std::string find_file(const std::string& filename) {
       fs::path current_path = fs::current_path();
       for (const auto& entry : fs::recursive_directory_iterator(current_path)) {
@@ -129,7 +146,6 @@ private:
   void controlCb(const ros::TimerEvent&);
   void imuCb(const sensor_msgs::Imu::ConstPtr& msg);
   void localisationCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg); 
-
   void process_and_publish_data(int temp_source, int temp_target);
 
   void function_one();
