@@ -100,20 +100,19 @@ public:
   std::vector<std::tuple<std::string, std::string, bool>> pathOriginal_;
   std::vector<std::tuple<int, double, double>> path_;
   std::map<std::string, std::pair<double, double>> new_node_data_;
-  std::map<int, std::pair<double, double>> obs_dict_;
+  std::map<std::string, std::pair<double, double>> obs_dict_;
   std::vector<std::string> expath_;
   std::vector<std::string> shortest_path_;
   
-  std::vector<std::pair<std::string, std::string>> SourceTargetNodesOriginal;
-  std::vector<std::pair<std::string, std::string>> SourceTargetNodes;
-  std::vector<std::pair<std::string, std::string>> SourceTargetNodesCopy;
-  std::vector<std::tuple<std::string, double, double, double>> pathGoalsYawDegree;
-  std::vector<std::tuple<std::string, double, double, double>> pathGoalsYawDegreeOriginal;
-  std::vector<std::tuple<std::string, double, double, double>> pathGoalsYawDegreeCopy;
+  std::vector<std::pair<std::string, std::string>> SourceTargetNodesOriginal_;
+  std::vector<std::pair<std::string, std::string>> SourceTargetNodes_;
+  std::vector<std::pair<std::string, std::string>> SourceTargetNodesCopy_;
+  std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegree_;
+  std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal_;
+  std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy_;
 
-  bool pathGoalsYawDegreecalled;
+  bool pathGoalsYawDegreecalled_;
   
-
   std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
   std::vector<std::tuple<int, int, bool>> stformat(const std::vector<int>& path_short_);
   std::pair<std::map<int, std::pair<double, double>>, std::vector<std::tuple<int, int, bool>>> beizer(const std::vector<int>& path_short_, std::map<int, std::pair<double, double>>& noded_);

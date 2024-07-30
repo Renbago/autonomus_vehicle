@@ -153,51 +153,48 @@ public:
 
         for (const auto& edge : stlist) {
             if (std::get<2>(edge)) {
-                mpc_node.SourceTargetNodes.emplace_back(std::get<0>(edge), std::get<1>(edge));
+                mpc_node.SourceTargetNodes_.emplace_back(std::get<0>(edge), std::get<1>(edge));
             }
         }
 
         for (const auto& edge : mpc_node.pathOriginal_) {
             if (std::get<2>(edge)) {
-                mpc_node.SourceTargetNodesOriginal.emplace_back(std::get<0>(edge), std::get<1>(edge));
+                mpc_node.SourceTargetNodesOriginal_.emplace_back(std::get<0>(edge), std::get<1>(edge));
             }
         }
         
         std::vector<std::tuple<int, double, double>>  path;
-        std::vector<std::tuple<std::string, std::string, bool>> path_original;
+        std::vector<std::tuple<int, double, double>> path_original;
 
-        for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodesOriginal) {
+        for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodesOriginal_) {
             if (mpc_node.new_node_data_.find(source_id) != mpc_node.new_node_data_.end()) {
                 const auto& source_coords = mpc_node.new_node_data_.at(source_id);
                 // Correcting insertion for pathOriginal_ which expects std::string, std::string, bool
-                path_original.emplace_back(source_id, target_id, true); // Assuming you want a boolean flag as 'true'.
+                path_original.emplace_back(std::stoi(source_id), source_coords.first, source_coords.second); // Assuming you want a boolean flag as 'true'.
             }
             if (mpc_node.new_node_data_.find(target_id) != mpc_node.new_node_data_.end()) {
                 const auto& coords = mpc_node.new_node_data_.at(target_id);
                 // Correcting insertion for path_ which expects int, double, double
-                mpc_node.path_.emplace_back(std::stoi(target_id), coords.first, coords.second); // Ensure target_id is an integer string.
-                try {
-                    int target_id_int = std::stoi(target_id);
-                    mpc_node.path_.emplace_back(target_id_int, coords.first, coords.second);
-                } catch (const std::invalid_argument& e) {
-                    std::cerr << "Invalid target_id: " << target_id << std::endl;
-                } catch (const std::out_of_range& e) {
-                    std::cerr << "target_id out of range: " << target_id << std::endl;
-                }
+                path_original.emplace_back(std::stoi(target_id), coords.first, coords.second); // Ensure target_id is an integer string.
             }
         }
 
-        for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodes) {
-            try {
-                int target_id_int = std::stoi(target_id); // Convert target_id to int
-                std::cout << "Converted target_id: " << target_id_int << std::endl; // Debug statement
+        // // Print path_original
+        // for (const auto& [source_id, target_id, flag] : path_original) {
+        //     std::cout << "Source ID: " << source_id << ", Target ID: " << target_id << ", Flag: " << (flag ? "true" : "false") << std::endl;
+        // }
 
-                if (mpc_node.obs_dict_.find(target_id_int) != mpc_node.obs_dict_.end()) {
-                    const auto& coords = mpc_node.obs_dict_.at(target_id_int);
-                    std::cout << "Found coordinates: (" << coords.first << ", " << coords.second << ") for target_id: " << target_id_int << std::endl; // Debug statement
-                    path.emplace_back(target_id_int, coords.first, coords.second);
+        for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodes_) {
+            try {
+                // Using target_id as a string
+                std::cout << "Target ID: " << target_id << std::endl; // Debug statement
+
+                if (mpc_node.new_node_data_.find(target_id) != mpc_node.new_node_data_.end()) {
+                    const auto& coords = mpc_node.new_node_data_.at(target_id);
+                    std::cout << "Found coordinates: (" << coords.first << ", " << coords.second << ") for target_id: " << target_id << std::endl; // Debug statement
+                    path.emplace_back(std::stoi(target_id), coords.first, coords.second); // Convert target_id to int for path
                 } else {
-                    std::cout << "target_id_int " << target_id_int << " not found in obs_dict_" << std::endl;
+                    std::cout << "target_id " << target_id << " not found in obs_dict_" << std::endl;
                 }
             } catch (const std::invalid_argument& e) {
                 std::cerr << "Invalid target_id: " << target_id << std::endl;
@@ -214,56 +211,86 @@ public:
         }
 
         std::cout << "test" << std::endl;
-
         
+        // Her bir nokta için bir sonraki nokta ile arasındaki açıyı hesaplama
+        std::vector<double> angles, anglesOriginal;
 
-        // for (const auto& [source_id, target_id] : SourceTargetNodes) {
-        //     if (new_node_data.find(target_id) != new_node_data.end()) {
-        //         const auto& coords = new_node_data[target_id];
-        //         path.emplace_back(target_id, coords.first, coords.second);
-        //     }
-        // }
+        for(const auto& [id, x, y] : path_original)
+        {
+            std::cout << "ID: " << id << ", X: " << x << ", Y: " << y << std::endl;
+        }
 
-        // // Her bir nokta için bir sonraki nokta ile arasındaki açıyı hesaplama
-        // std::vector<double> angles, anglesOriginal;
+        for (size_t i = 0; i < path_original.size() - 1; ++i) {
+            try {
+                // double x1 = std::get<1>(path_original[i]);
+                // double x2 = std::get<1>(path_original[i + 1]);
 
-        // for (size_t i = 0; i < pathOriginal.size() - 1; ++i) {
-        //     double dx = pathOriginal[i + 1].second - pathOriginal[i].second;
-        //     double dy = pathOriginal[i + 1].third - pathOriginal[i].third;
-        //     double angle = std::atan2(dy, dx);
-        //     anglesOriginal.push_back(angle);
-        // }
+                // double y1 = std::get<2>(path_original[i]);
+                // double y2 = std::get<2>(path_original[i + 1]);
 
-        // for (size_t i = 0; i < path.size() - 1; ++i) {
-        //     double dx = path[i + 1].second - path[i].second;
-        //     double dy = path[i + 1].third - path[i].third;
-        //     double angle = std::atan2(dy, dx);
-        //     angles.push_back(angle);
-        // }
+                double dx = std::get<1>(path_original[i + 1]) - std::get<1>(path_original[i]);
+                double dy = std::get<2>(path_original[i + 1]) - std::get<2>(path_original[i]);
 
-        // if (!angles.empty()) {
-        //     angles.push_back(angles.back());
-        // }
+                double angle = std::atan2(dy, dx);
+                anglesOriginal.push_back(angle);
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid argument: " << e.what() << " at index " << i << std::endl;
+                continue;
+            } catch (const std::out_of_range& e) {
+                std::cerr << "Out of range: " << e.what() << " at index " << i << std::endl;
+                continue;
+            }
+        }
 
-        // if (!anglesOriginal.empty()) {
-        //     anglesOriginal.push_back(anglesOriginal.back());
-        // }
+        // Print anglesOriginal
+        for (const auto& angle : anglesOriginal) {
+            std::cout << "Angle: " << angle << std::endl;
+        }
 
-        // for (size_t i = 0; i < path.size(); ++i) {
-        //     pathGoalsYawDegree.emplace_back(path[i].first, path[i].second, path[i].third, angles[i]);
-        // }
+        for (size_t i = 0; i < path.size() - 1; ++i) {
+            // double dx = path[i + 1].second - path[i].second;
+            // double dy = path[i + 1].third - path[i].third;
+            double dx = std::get<1>(path[i+1]) - std::get<1>(path[i]);
+            double dy = std::get<2>(path[i+1]) - std::get<2>(path[i]);
 
-        // for (size_t i = 0; i < pathOriginal.size(); ++i) {
-        //     pathGoalsYawDegreeOriginal.emplace_back(pathOriginal[i].first, pathOriginal[i].second, pathOriginal[i].third, anglesOriginal[i]);
-        // }
+            double angle = std::atan2(dy, dx);
+            angles.push_back(angle);
+        }
 
-        // if (!pathGoalsYawDegreecalled) {
-        //     pathGoalsYawDegreeCopy = pathGoalsYawDegreeOriginal;
-        //     SourceTargetNodesCopy = SourceTargetNodesOriginal;
-        //     pathGoalsYawDegreecalled = true;
-        // }
+        for (const auto& angle : angles) {
+            std::cout << "Angle: " << angle << std::endl;
+        }
 
-        // std::string data_message = toString(edges_data_true);
+        if (!angles.empty()) {
+            angles.push_back(angles.back());
+        }
+
+        if (!anglesOriginal.empty()) {
+            anglesOriginal.push_back(anglesOriginal.back());
+        }
+
+        for (size_t i = 0; i < path.size(); ++i) {
+            mpc_node.pathGoalsYawDegree_.emplace_back(std::get<0>(path[i]), std::get<1>(path[i]), std::get<2>(path[i]), angles[i]);
+        }
+
+        // Print pathGoalsYawDegree
+        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegree_) {
+            std::cout << "Node ID1: " << id << ", X1: " << x << ", Y1: " << y << ", Angle1: " << angle << std::endl;
+        }
+
+        for (size_t i = 0; i < path_original.size(); ++i) {
+            mpc_node.pathGoalsYawDegreeOriginal_.emplace_back(std::get<0>(path_original[i]), std::get<1>(path_original[i]), std::get<2>(path_original[i]), anglesOriginal[i]);
+        }
+
+        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegreeOriginal_) {
+            std::cout << "Node ID2: " << id << ", X2: " << x << ", Y2: " << y << ", Angle2: " << angle << std::endl;
+        }
+
+        if (!mpc_node.pathGoalsYawDegreecalled_) {
+            mpc_node.pathGoalsYawDegreeCopy_ = mpc_node.pathGoalsYawDegreeOriginal_;
+            mpc_node.SourceTargetNodesCopy_ = mpc_node.SourceTargetNodesOriginal_;
+            mpc_node.pathGoalsYawDegreecalled_ = true;
+        }
 
     }
 
