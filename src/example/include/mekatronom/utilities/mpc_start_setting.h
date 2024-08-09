@@ -28,169 +28,131 @@
 
 #pragma once
 
-#include "ros/ros.h"
-#include "casadi/casadi.hpp"
 #include "mekatronom/MpcNode.hpp"
 
-using namespace casadi;
-
+// Scenario names as constants
+const std::string SCENARIO_PARK = "park";
+const std::string SCENARIO_CROSSWALK = "crosswalk";
+const std::string SCENARIO_MOTORWAY = "motorway";
+const std::string SCENARIO_INITIAL = "initial_settings";
 
 class MpcStartSetting
 {
 public:
-    MpcStartSetting(const std::string& scenerio_name_, ros::NodeHandle& nh_local_, ros::NodeHandle& nh_, MpcNode& node)
+    MpcStartSetting(const std::string& scenerio_name_, MpcNode& node)
     {
         ROS_INFO("scenerio_name: %s", scenerio_name_.c_str());
+        setlocale(LC_NUMERIC, "C"); 
 
-        //TODO: Those settings tuned by hand for different scenerios. They should be tuned from here
-        
+        /*
+        * Try function is bit cheating. Those parameters tuned in real life scenario. 
+        * So if anyone want to tune it he can change the values in the settings.
+        * This values following the order:
+        * Qx,Qy,Qtheta,R1,R2,step_horizon,N,rob_diam,wheel_radius,L_value,Ly,v_max,v_min,omega_max,omega_min
+        */
         try {
             
             MpcNode::Settings initial_settings{
-                1.0, 1.0, 1., 1.0, 1.8, 0.2, 12., 0.354, 1., 0.4, 0.04, 0.33,-0.1, M_PI / 7.5, -M_PI / 7.5
+                1.0, 1.0, 1.0, 1.0, 1.8, 0.2, 12, 0.354, 1.0, 0.4, 0.04, 0.33,-0.1, M_PI / 7.5, -M_PI / 7.5
             };
             MpcNode::Settings park_scenerio_settings{
-                1.0, 4.0, 0.05, 0.01, 0.02, 0.1, 6., 0.354, 1., 0.3, 0.04, 0.2,-0.25, M_PI / 7.5, -M_PI / 7.5
+                1.0, 4.0, 0.05, 0.01, 0.02, 0.1, 6, 0.354, 1., 0.3, 0.04, 0.2,-0.25, M_PI / 7.5, -M_PI / 7.5
             };
             MpcNode::Settings crosswalk_scenerio_settings{
-                1.0, 1.0, 1., 1., 1.8, 0.1, 12., 0.354, 1., 0.3, 0.04, 0.13,-0.2, M_PI / 7.5, -M_PI / 7.5
+                1.0, 1.0, 1., 1., 1.8, 0.1, 12, 0.354, 1., 0.3, 0.04, 0.13,-0.2, M_PI / 7.5, -M_PI / 7.5
             };
             MpcNode::Settings motorway_scenerio_settings{
-                1.0, 1.0, 2., 2., 2.8, 0.2, 4., 0.354, 1., 0.5, 0.04, 0.5,-0.1, M_PI / 7.5, -M_PI / 7.5
+                1.0, 1.0, 2., 2., 2.8, 0.2, 4, 0.354, 1., 0.5, 0.04, 0.5,-0.1, M_PI / 7.5, -M_PI / 7.5
             };
             
             
-            if (scenerio_name_ == "park") { 
+            if (scenerio_name_ == SCENARIO_PARK) { 
                 ROS_INFO("The scenario is park.");
-                // node.initial_settings_ = park_scenerio_settings;
-            } else if (scenerio_name_ == "crosswalk") {
+                node.initial_settings_ = park_scenerio_settings;
+            } else if (scenerio_name_ == SCENARIO_CROSSWALK) {
                 ROS_INFO("The scenario is crosswalk.");
-                // node.initial_settings_ = crosswalk_scenerio_settings;
-            } else if (scenerio_name_ == "motorway") {
+                node.initial_settings_ = crosswalk_scenerio_settings;
+            } else if (scenerio_name_ == SCENARIO_MOTORWAY) {
                 ROS_INFO("The scenario is motorway.");
-                // node.initial_settings_ = motorway_scenerio_settings;
-            } 
-            else {
-                // Handle the case where scenerio_name_ is not recognized.
-                // You can choose to throw an exception, log an error, or provide a default value.
-                // Here, we set it to initial_settings_ as a fallback.
-                // node.initial_settings_ = initial_settings;
+                node.initial_settings_ = motorway_scenerio_settings;
+            } else if (scenerio_name_ == SCENARIO_INITIAL) {
+                ROS_INFO("The scenario is initial settings.");
+                node.initial_settings_ = initial_settings;
+            } else {
                 ROS_INFO("The scenario is not recognized. The default settings are set.");
+            
             }
-
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.Q_x);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.Q_y);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.Q_theta);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.R1);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.R2);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.step_horizon);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.rob_diam);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.wheel_radius);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.L_value);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.Ly);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.v_max);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.v_min);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.omega_max);
-            ROS_INFO("The settings are set for the scenario: %s", node.initial_settings_.omega_min);
 
         } catch (const std::exception& e) {
             ROS_FATAL("Exception caught during setting the scenario: %s", e.what());
             return;
         }
-        
-        // // Dönüşüm matrisini oluştur
-        // Eigen::Matrix2d rotationMatrix;
-        
-        // rotationMatrix << std::cos(localisation_data_.yaw ), -std::sin(localisation_data_.yaw ),
-        //                 std::sin(localisation_data_.yaw ), std::cos(localisation_data_.yaw );
 
-        // ROS_INFO("imu_data_.yaw: %f", localisation_data_.yaw);
-        // // Dönüştürülecek matrisi tanımla
-        // Eigen::Vector2d matrix(1, 4);
 
-        // // Dönüşümü uygula
-        // Eigen::Vector2d result = rotationMatrix * matrix;
+        node.mpc_setting_outputs_.state_init = DM::vertcat({node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
 
-        // Başlangıç ve hedef durumları tanımla
-        DM state_init = DM::vertcat({node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
-        DM state_target = DM::vertcat({12.09, 13.72-11.88, 0.0});
+        //TODO: The target if you dont have a gps should be gaven by hand, or you can use the next node_id
+        // For our scenerio in real life without gps its getting data like this.
+        node.mpc_setting_outputs_.state_target = DM::vertcat({12.09, 13.72-11.88, 0.0});
 
-        // Durum sembolik değişkenlerini tanımla
+        /*
+        * Initial settings for the MPC 
+        */
         SX x = SX::sym("x");
         SX y = SX::sym("y");
         SX theta = SX::sym("theta");
         SX states = vertcat(x, y, theta);
-        int n_states = states.size1() * states.size2(); // numel yerine size1 ve size2 çarpımı kullanılır
-        std::cout << "n_states: " << n_states << std::endl;
+        node.mpc_setting_outputs_.n_states = states.size1() * states.size2(); 
 
-        // new define
         SX v = SX::sym("v");
         SX omega = SX::sym("omega");
         SX controls = vertcat(v, omega);
-        int n_controls = controls.numel();
+        node.mpc_setting_outputs_.n_controls = controls.numel();
 
-        // matrix containing all states over all time steps +1 (each column is a state vector)
-        SX X = SX::sym("X", n_states, (node.initial_settings_.N + 1));
+        SX X = SX::sym("X", node.mpc_setting_outputs_.n_states, (node.initial_settings_.N + 1));
+        SX U = SX::sym("U", node.mpc_setting_outputs_.n_controls, node.initial_settings_.N);
+        SX P = SX::sym("P", node.mpc_setting_outputs_.n_states + node.mpc_setting_outputs_.n_states);
 
-        // matrix containing all control actions over all time steps (each column is an action vector)
-        SX U = SX::sym("U", n_controls, node.initial_settings_.N);
-
-        // column vector for storing initial state and target state
-        SX P = SX::sym("P", n_states + n_states);
-
-        // state weights matrix (Q_X, Q_Y, Q_THETA)
         std::vector<SX> Q_elements;
-        Q_elements.push_back(SX::diag(node.initial_settings_.Q_x)); // Assuming Q_x, Q_y, Q_theta are already defined SX expressions
+        Q_elements.push_back(SX::diag(node.initial_settings_.Q_x)); 
         Q_elements.push_back(SX::diag(node.initial_settings_.Q_y));
         Q_elements.push_back(SX::diag(node.initial_settings_.Q_theta));
-        SX Q = diagcat(Q_elements); // Use vector for diagcat
+        SX Q = diagcat(Q_elements); 
 
-        // Correct usage of diagcat for R as well
         std::vector<SX> R_elements;
-        R_elements.push_back(SX::diag(node.initial_settings_.R1)); // Assuming R1, R2 are already defined SX expressions
+        R_elements.push_back(SX::diag(node.initial_settings_.R1));
         R_elements.push_back(SX::diag(node.initial_settings_.R2));
-        SX R = diagcat(R_elements); // Use vector for diagcat
+        SX R = diagcat(R_elements); 
 
-
-        // // discretization model (e.g. x2 = f(x1, v, t) = x1 + v * dt)
-        // SX rot_3d_z = vertcat(
-        //     horzcat(cos(theta), -sin(theta), 0),
-        //     horzcat(sin(theta), cos(theta), 0),
-        //     horzcat(0, 0, 1)
-        // );
-
-        // // Mecanum wheel transfer function
-        // DM J = (wheel_radius / 4) * DM({
-        //     {1, 1, 1, 1},
-        //     {-1, 1, 1, -1},
-        //     {-1 / (Lx + Ly), 1 / (Lx + Ly), -1 / (Lx + Ly), 1 / (Lx + Ly)}
-        // });
-
+       /*
+       * Bicycle model
+       */
         SX RHS = vertcat(
             v * cos(theta),
             v * sin(theta),
-            omega
+            v / node.initial_settings_.L_value * tan(omega)
+
         );
 
-        // maps controls from [va, vb, vc, vd].T to [vx, vy, omega].T
         Function f = Function("f", {states, controls}, {RHS});
 
-        SX cost_fn = 0; // cost function
-        SX g = X(Slice(), 0) - P(Slice(0, n_states)); // constraints in the equation
+        SX cost_fn = 0; 
+        SX g = X(Slice(), 0) - P(Slice(0, node.mpc_setting_outputs_.n_states)); 
 
         SX st = X(Slice(), 0);
-        std::cout << "st: " << st << std::endl;
-        std::cout << "g: " << g << std::endl;
 
+        /*
+        * Runge-Kutta 4th order integration method
+        */
         for (int k = 0; k < node.initial_settings_.N; ++k) {
             SX st = X(Slice(), k);
             SX con = U(Slice(), k);
+            std::cout << "st: " << st << std::endl;
+            std::cout << "con: " << con << std::endl;
 
-            // Maliyet fonksiyonunu hesapla
             cost_fn += mtimes(mtimes((st - P(Slice(3, 6), 0)).T(), Q), (st - P(Slice(3, 6), 0))) + 
                     mtimes(mtimes(con.T(), R), con);
 
-            // Bir sonraki durumu tahmin et
             SX st_next = X(Slice(), k+1);
 
             auto k1 = f(std::vector<SX>{st, con});
@@ -199,74 +161,150 @@ public:
             auto k4 = f(std::vector<SX>{st + node.initial_settings_.step_horizon * k3.at(0), con});
 
             SX st_next_RK4 = st + (node.initial_settings_.step_horizon / 6) * (k1.at(0) + 2*k2.at(0) + 2*k3.at(0) + k4.at(0));
-
-            // Kısıtlama vektörünü güncelle
+            std::cout << "st_next: " << st_next << std::endl;
+            std::cout << "st_next_RK4: " << st_next_RK4 << std::endl;
+            std::cout << "test: " << std::endl;
             g = vertcat(g, st_next - st_next_RK4);
-
+            // Verify that number of constraints matches expectations
+            std::cout << "Number of constraints in g: " << g.size1() << std::endl;
         }
+
+        std::cout << "SOLVER2" << std::endl;
+
+
+        SX OPT_variables = vertcat(reshape(X, node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), 1), reshape(U, node.mpc_setting_outputs_.n_controls * node.initial_settings_.N, 1));
+        std::cout << "OPT_variables: " << OPT_variables << std::endl;
         std::cout << "cost_fn: " << cost_fn << std::endl;
         std::cout << "g: " << g << std::endl;
-
-        SX OPT_variables = vertcat(reshape(X, n_states * (node.initial_settings_.N + 1), 1), reshape(U, n_controls * node.initial_settings_.N, 1));
-
-        // nlp_prob sözlüğünü tanımlama
+        std::cout << "P: " << P << std::endl;
         SXDict nlp_prob = {
             {"f", cost_fn},
             {"x", OPT_variables},
             {"g", g},
             {"p", P}
         };
-        // Solver ayarlarını tanımlama
+        
+        std::cout << "nlp_prob: " << nlp_prob << std::endl;
         Dict opts = {
             {"ipopt.max_iter", 100},
             {"ipopt.print_level", 0},
             {"ipopt.acceptable_tol", 1e-8},
             {"ipopt.acceptable_obj_change_tol", 1e-6},
-            {"print_time", 0}
+            {"print_time", 0},
         };
 
+        std::cout << "opts: " << opts << std::endl;
+        // node.mpc_setting_outputs_.solver = nlpsol("solver", "ipopt", nlp_prob, opts);
 
-        Function solver = nlpsol("solver", "ipopt", nlp_prob, opts);
-        std::cout << "Solver " << solver << std::endl;
+        // Optimization variables
+        casadi::MX x2 = casadi::MX::sym("x", 2);
 
-        DM lbx = DM::zeros(n_states*(node.initial_settings_.N+1) + n_controls*node.initial_settings_.N, 1);
-        DM ubx = DM::zeros(n_states*(node.initial_settings_.N+1) + n_controls*node.initial_settings_.N, 1);
-        DM lbg = DM::zeros(n_states*(node.initial_settings_.N+1), 1);
-        DM ubg = DM::zeros(n_states*(node.initial_settings_.N+1), 1);
+        // Objective
+        casadi::MX f2 = x2(0)*x2(0) + x2(1)*x2(1);
 
-        // Sınırları ayarlama
-        for (int i = 0; i < n_states*(node.initial_settings_.N+1); i+=n_states) {
-            lbx(i) = -DM::inf();
-            lbx(i+1) = -DM::inf();
-            lbx(i+2) = -DM::inf();
+        // Constraints
+        casadi::MX g2 = x2(0)+x2(1)-10;
 
-            ubx(i) = DM::inf();
-            ubx(i+1) = DM::inf();
-            ubx(i+2) = DM::inf();
-        }
+        std::cout << "TEST3" << std::endl;
 
-        for (int i = n_states*(node.initial_settings_.N+1); i < n_states*(node.initial_settings_.N+1)+2*node.initial_settings_.N; i+=2) {
-            lbx(i) = node.initial_settings_.v_min;
-            ubx(i) = node.initial_settings_.v_max;
-            lbx(i+1) = node.initial_settings_.omega_min;
-            ubx(i+1) = node.initial_settings_.omega_max;
-        }
 
-        // İlk durum ve kontrol değerleri
 
-        DM t0 = 0;
-        DM u0 = DM::zeros(node.initial_settings_.N, 2); // İlk kontrol vektörü
-        DM X0 = DM::repmat(state_init, 1, node.initial_settings_.N+1).T(); // İlk durum vektörü
 
-        // Args sözlüğü oluşturma
-        std::map<std::string, DM> args;
-        args["lbg"] = lbg;
-        args["ubg"] = ubg;
-        args["lbx"] = lbx;
-        args["ubx"] = ubx;
+        // Create an NLP solver instance
+        casadi::Function solver = nlpsol("solver", "ipopt", {{"x", x2}, {"f", f2}, {"g", g2}});
 
-        std::cout << "args: " << args << std::endl;
+        // std::cout << "solver: " << solver << std::endl;
 
+        // casadi::Function solver2 = nlpsol("solver", "ipopt", nlp_prob, opts);
+
+        // std::cout << "TEST" << std::endl;
+        // /*
+        // * This section is for the constraints of the states and controls
+        // * Currently supporting velocity and angular velocity constraints
+        // */
+        // DM lbx = DM::zeros(node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1) + node.mpc_setting_outputs_.n_controls*node.initial_settings_.N, 1);
+        // DM ubx = DM::zeros(node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1) + node.mpc_setting_outputs_.n_controls*node.initial_settings_.N, 1);
+        // DM lbg = DM::zeros(node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1), 1);
+        // DM ubg = DM::zeros(node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1), 1);
+
+        // std::cout<< "node.mpc_setting_outputs_.solver: " << node.mpc_setting_outputs_.solver << std::endl;
+
+        // std::cout<< "wtf0" << std::endl;
+        // for (int i = 0; i < node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1); i += node.mpc_setting_outputs_.n_states) {
+        //     // Debugging output to identify the loop iteration
+        //     std::cout << "Loop iteration: " << i << std::endl;
+
+        //     // Verify index validity
+        //     if (i + 2 >= lbx.size1()) {
+        //         std::cerr << "Index out of bounds: " << i + 2 << std::endl;
+        //         break; // Prevent further execution to avoid segfault
+        //     }
+
+        //     // Assigning lower bounds
+        //     lbx(i) = -DM::inf();  // Ensure lbx is initialized correctly
+        //     lbx(i + 1) = -DM::inf();
+        //     lbx(i + 2) = -DM::inf();
+
+        //     std::cout << "Assigned lower bounds for index: " << i << std::endl;
+
+        //     // Assigning upper bounds
+        //     ubx(i) = DM::inf();  // Ensure ubx is initialized correctly
+        //     ubx(i + 1) = DM::inf();
+        //     ubx(i + 2) = DM::inf();
+
+        //     std::cout << "Assigned upper bounds for index: " << i << std::endl;
+        // }
+
+        // std::cout << "SOLVERx" << std::endl;
+
+        // for (int i = node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1); i < node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1)+2*node.initial_settings_.N; i+=2) {
+        //     std::cout<< "wtf1" << std::endl;
+        //     lbx(i) = node.initial_settings_.v_min;
+        //     std::cout<< "wtf2" << std::endl;
+        //     ubx(i) = node.initial_settings_.v_max;
+        //     std::cout<< "wtf3" << std::endl;
+        //     lbx(i+1) = node.initial_settings_.omega_min;
+        //     ubx(i+1) = node.initial_settings_.omega_max;
+
+        // }
+
+        // std::cout << "SOLVER3" << std::endl;
+
+        // /*
+        // * u0 is [velocity, angular velocity]
+        // * x0 is [x, y, theta] 
+        // * Here is initial settings for the mpcRunning
+        // */
+        // node.mpc_setting_outputs_.u0 = DM::zeros(node.initial_settings_.N, 2); 
+        // node.mpc_setting_outputs_.X0 = DM::repmat(node.mpc_setting_outputs_.state_init 
+        //                                             , 1, node.initial_settings_.N+1).T(); 
+        // node.mpc_setting_outputs_.args["lbg"] = lbg;
+        // node.mpc_setting_outputs_.args["ubg"] = ubg;
+        // node.mpc_setting_outputs_.args["lbx"] = lbx;
+        // node.mpc_setting_outputs_.args["ubx"] = ubx;
+
+        // std::cout << "SOLVER4" << std::endl;
+
+
+        // node.mpc_setting_outputs_.args["p"] = vertcat(
+        //     node.mpc_setting_outputs_.state_init,
+        //     node.mpc_setting_outputs_.state_target
+        // );
+        // node.mpc_setting_outputs_.args["x0"] = vertcat(
+        //     reshape(node.mpc_setting_outputs_.X0.T(), node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), 1),
+        //     reshape(node.mpc_setting_outputs_.u0.T(), node.mpc_setting_outputs_.n_controls * node.initial_settings_.N, 1)
+        // );
+        // std::cout << "SOLVER5" << std::endl;
+
+
+        // std::map<std::string, casadi::DM> arg, res;
+        // res = node.mpc_setting_outputs_.solver(node.mpc_setting_outputs_.args);
+
+        // // std::cout << "dual solution (x) = " << res.at("lbg") << std::endl;
+
+        // // Check number of constraints
+        // std::cout << "Number of constraints in g: " << g.size1() << std::endl;
+        // std::cout << "Expected number of constraints: " << lbg.size1() << std::endl;
 
     }
 };

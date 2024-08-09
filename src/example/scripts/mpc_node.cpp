@@ -32,8 +32,7 @@ int main(int argc, char** argv) {
   ros::init(argc, argv, "MpcNode", ros::init_options::NoRosout);
   ros::NodeHandle nh("");
   ros::NodeHandle nh_local("~");
-
-
+  
   try {
     ROS_INFO("[MPC Node]: Initializing node");
     unsigned int cpu_cores = std::thread::hardware_concurrency();

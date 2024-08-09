@@ -87,7 +87,7 @@ class MPC():
 
         #sükrü pathfinding icin
         self.source_node="263" #472   
-        self.target_node="900" #197  #901
+        self.target_node="244" #197  #901
         self.current_id=self.source_node
         self.current_id_original=self.source_node
         #newPathFinding
@@ -398,6 +398,11 @@ class MPC():
             k3 = f(st + (step_horizon/2)*k2, con)
             k4 = f(st + step_horizon * k3, con)
 
+            print("k1", k1)
+            print("k2", k2)
+            print("k3", k3)
+            print("k4", k4)
+
 
             st_next_RK4 = st + (step_horizon / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
             print("st_next_RK4",st_next_RK4)
@@ -515,6 +520,8 @@ class MPC():
         # print("cat_states",cat_states)
         # print("cat_controls",cat_controls)
 
+
+
         self.step_horizon = step_horizon
         self.cat_controls = cat_controls
         self.cat_states = cat_states
@@ -533,7 +540,26 @@ class MPC():
         self.v_max = v_max
         self.omega_min = omega_min
         self.omega_max = omega_max
+        print("self.state_init",self.state_init)
+        print("self.state_target",self.state_target)
+        print("self.X0",self.X0)
+        print("self.u0",self.u0)
+        print("self.solver",self.solver)
+        print("lbg",args['lbg'])
+        print("ubg",args['ubg'])
+        print("lbx",args['lbx'])
+        print("ubx",args['ubx'])
+        print("self.state_init",self.state_init.size())
+        print("self.state_target",self.state_target.size())
+        print("self.X0",self.X0.size())
+        print("self.u0",self.u0.size())
+        print("lbg",args['lbg'].size())
+        print("ubg",args['ubg'].size())
+        print("lbx",args['lbx'].size())
+        print("ubx",args['ubx'].size())
+        print("g.size",g.size())
 
+        
     def mpcTimerCallback(self,event):
         try:
 
@@ -581,6 +607,7 @@ class MPC():
 
                 # self.args = args
 
+
                 self.args['p'] = ca.vertcat(
                     self.state_init,    # current state
                     self.state_target   # target state
@@ -591,8 +618,18 @@ class MPC():
                     ca.reshape(self.u0.T, self.n_controls*self.N, 1)
                 )
 
+                print("self.args['x0']",self.args['x0'].size())
+                print("self.args['p']",self.args['p'].size())
+
                 # print("self.args['x0']",self.args['x0'])
                 # print("self.args['p']",self.args['p'])
+                # print("self.args['lbx']",self.args['lbx'])
+                # print("self.args['ubx']",self.args['ubx'])
+                # print("self.args['lbg']",self.args['lbg'])
+                # print("self.args['ubg']",self.args['ubg'])
+
+
+
                 # print("self.u0",self.u0.T)
                 # print("self.X0",self.X0.T)
 
@@ -605,8 +642,8 @@ class MPC():
                     p=self.args['p']
                 )
 
+                print("sol",sol)
                 self.u = ca.reshape((sol['x'][self.n_states * (self.N + 1):]).T, self.n_controls, self.N).T
-
 
                 # Daha sonra yeniden şekillendirin
 
@@ -1417,8 +1454,6 @@ class MPC():
 
         self.edges_data, self.edges_data_true_ilkverisyon = self.extract_edges_data(root)
 
-        print("self.edges_data",self.edges_data)
-        print("self.nodes_data",self.nodes_data)
 
         #print("nodes data ::::",self.edges_data)
         flagsolla=self.flagsolla
@@ -1457,19 +1492,22 @@ class MPC():
 
 
         noded,edged=self.extract_graph()# (nodedict,edgedict) döndürür
-        print("edgedictionary ",edged)
-        print("nodedictionary ",noded)
+
         #self.obs_dontuse=["360","314","321","344","315","270","367","64","169","326"]
 
         path_short=self.dijkstra(temp_source,temp_target,noded,edged,self.obs_dontuse)#nodedictionary =noded
+        print("pathshort:",path_short)
         self.path_original = self.stformat(path_short)
         self.nodedatabest=noded
+        print("pathoriginal:",self.path_original)
         #print(noded)
 
 
         newnodedictionary,stlist=self.beizer(path_short,noded)#beizere targete giden path i veriyorum
         self.obs_dict = newnodedictionary#yeni node sozlüğü
         self.edges_data_true =stlist#source target list
+        # print("self.obs_dict",self.obs_dict)
+        # print("self.edges_data_true",self.edges_data_true)
         #print("-----------------------------------------")
 
 
@@ -1503,11 +1541,14 @@ class MPC():
             #     coords = self.obs_dict[source_id]
             #     self.path.append((source_id, coords[0], coords[1]))
 
+        # print("\nself.path_original::::\n",self.pathOriginal)
+
         for source_id, target_id in self.SourceTargetNodes:
             if target_id in self.obs_dict:
                 coords = self.obs_dict[target_id]
                 self.path.append((target_id, coords[0], coords[1]))
-        #print("self.path::::",self.path)
+
+        # print("\nself.path::::\n",self.path)
         #print("**************************************************")
         # print("SourceTargetNodes",self.SourceTargetNodes)
         # print("**************************************************")
@@ -1539,16 +1580,22 @@ class MPC():
 
         for i in range(len(self.pathOriginal) - 1):
             dx = self.pathOriginal[i + 1][1] - self.pathOriginal[i][1]
+            # print("self.pathOriginal[i + 1][1]",self.pathOriginal[i + 1][1])
+            # print("self.pathOriginal[i][1]",self.pathOriginal[i][1])
             dy = self.pathOriginal[i + 1][2] - self.pathOriginal[i][2]
+
             angle = math.atan2(dy, dx)
             anglesOriginal.append(angle)
 
+        # print("anglesOriginal",anglesOriginal)
 
         for i in range(len(self.path) - 1):
             dx = self.path[i + 1][1] - self.path[i][1]
             dy = self.path[i + 1][2] - self.path[i][2]
             angle = math.atan2(dy, dx)
             angles.append(angle)
+
+        # print("angles",angles)
 
         if angles:  # Check if angles list is not empty
             angles.append(angles[-1])
@@ -1559,6 +1606,8 @@ class MPC():
         self.pathGoalsYawDegree = [(*p, angle) for p, angle in zip(self.path, angles)]
         self.pathGoalsYawDegreeOriginal = [(*p, angle) for p, angle in zip(self.pathOriginal, anglesOriginal)]
 
+        # print("\nself.pathGoalsYawDegree\n",self.pathGoalsYawDegree)
+        # print("\nself.pathGoalsYawDegreeOriginal\n",self.pathGoalsYawDegreeOriginal)
 
         if not self.pathGoalsYawDegreecalled:
             self.pathGoalsYawDegreeCopy = self.pathGoalsYawDegreeOriginal
@@ -1724,14 +1773,14 @@ class MPC():
         unvisited={n:float('inf') for n in edgedictt.keys()}
         #print("unvisited:",unvisited)
         unvisited[source]=0
-        print("en içteki kontrol source ::::",source)
+        # print("en içteki kontrol source ::::",source)
         #revPath={}
         visited ={}
         a=0#teminal sonsuzda kalmasın diye
         while unvisited  :
 
             minNode=min(unvisited, key=unvisited.get)
-            #print("minode:",minNode)
+            # print("minode:",minNode)
             visited[minNode]=unvisited[minNode]
             for j in edgedictt[minNode]:
                 #j=  ['komsu ıd',mesafe]
@@ -1752,6 +1801,7 @@ class MPC():
 
             unvisited.pop(minNode)
                 #print("komşu:",neighbor)
+
         node=target
         #revPathString=node
         #print("pathxxxx:",nodedictt["371"]['atalist'])
@@ -1763,8 +1813,11 @@ class MPC():
 
         nodedictt[target]['atalist']=nodedictt[target]['atalist']+[target]
         yolll=nodedictt[target]['atalist']
+
+        # print("visited:",visited)
+        # print("yol",yolll)
         if source in yolll and target in yolll:
-            print("yol var@@@@@@@@@@@@@@@@@@@")
+            # print("yol var@@@@@@@@@@@@@@@@@@@")
             #burda yol var ama trafik ışığında veya dur tabelası durumunda yeni yolçıkartabiliyorken bi önceki çıkmış olan yolu takip etmesi gerektiği durum için if ekliycem 
             #yol var  bi önceki yol ile kıyasla fark belli bir nokta sayısından fazla ise ve tabela veya trafik ışığı görüyorsa tampontakibi yapar gibi olanksımı uyguluycam
             #tabela senaryosu
@@ -1773,7 +1826,7 @@ class MPC():
             yayastate=False#yolda onümüze random noktada yayay çıkma senaryosunda bu true olucak
             expathstate=False#bir önceki yol kısa mı kullanılabilir mi çok kısamı gibi bi kontrol yapabilirim 
             if(trflstate or yayastate or expathstate ):
-                print("kırmızı ışık bekliycem eski yolu kullanıcam yeni yol çıkarmıcam ")
+                # print("kırmızı ışık bekliycem eski yolu kullanıcam yeni yol çıkarmıcam ")
                 #tampontakibi tepkisini yapıcam 
                 #random yaya gördüğümüz senaryoda yaya en yakın nodu dontuse a eklememiz lazım 
                 #değişken çakışması olmasın diye kopyaladığım değişkenlere xx ekledim
@@ -1783,14 +1836,14 @@ class MPC():
                         bagendxx=tempstopxx
                         break
                 indexnoEXxx=self.expath.index(bagendxx)
-                print("ex path:",self.expath)
+                # print("ex path:",self.expath)
                 if len(self.expath)>2 :
                     #TODO: burası eskiden -2 idi -1yapmayı deniyoruz -2 de çalışıyor ama 2 node öncesinje veriyor irdelenecek.
                     befbagendxx=self.expath[indexnoEXxx-1]#sourn burda olabillir tek nokta kalan path de indexi bir geriye alıp patlıyor olabilir
                 else :
                     befbagendxx=self.expath[indexnoEXxx]#bunu test et
-                print("before bagend",befbagendxx)
-                print("bagend :::",bagendxx)
+                # print("before bagend",befbagendxx)
+                # print("bagend :::",bagendxx)
                 nodedictt[befbagendxx]['atalist']=nodedictt[befbagendxx]['atalist']+[befbagendxx]
                 return nodedictt[befbagendxx]['atalist']
 
@@ -1807,11 +1860,7 @@ class MPC():
 
                 self.yolvar=True
                 self.expath=nodedictt[target]['atalist']
-                print("*************************")
-                print("*************************")
-                print(self.expath)
-                print("*************************")
-                print("*************************")
+
                 return nodedictt[target]['atalist']
         else:
             print("yol yok###################")
@@ -1826,18 +1875,18 @@ class MPC():
                     break
 
             indexnoEX=self.expath.index(bagend)
-            print("ex path:",self.expath)
+            # print("ex path:",self.expath)
             if len(self.expath)>2 :
                 #TODO: burası eskiden -2 idi -1yapmayı deniyoruz -2 de çalışıyor ama 2 node öncesinje veriyor irdelenecek.
                 befbagend=self.expath[indexnoEX-2]#sourn burda olabillir tek nokta kalan path de indexi bir geriye alıp patlıyor olabilir
             else :
                 befbagend=self.expath[indexnoEX]#bunu test et
-            print("before bagend",befbagend)
+            # print("before bagend",befbagend)
 
             #bagend in bi oncesinin ata listesi ni versem yeticek
             #print("test ::",edgedictt)
 
-            print("bagend :::",bagend)
+            # print("bagend :::",bagend)
             #print("bag path :",nodedictt[bagend]['atalist'])#burda bagend deki nokta ya eski source dan ulaşamadığımız için atalistesi boş ama  bi on cesini vermem lazim benim
             nodedictt[befbagend]['atalist']=nodedictt[befbagend]['atalist']+[befbagend]
             return nodedictt[befbagend]['atalist']
@@ -2047,8 +2096,8 @@ class MPC():
         carData = {}
         carData = {
             'action': '2',
-            'steerAngle': self.steerAngle 
-            # 'steerAngle': 30.0
+            # 'steerAngle': self.steerAngle 
+            'steerAngle': 0.0
         }
         # print("data",carData)
         self.carData = json.dumps(carData)
@@ -2058,8 +2107,8 @@ class MPC():
         # İkinci mesaj için veriler
         car2Data = {
             'action': '1',
-            'speed': self.steerLateral  
-            #'speed': 0.0
+            # 'speed': self.steerLateral  
+            'speed': 0.0
         }   
         self.car2Data = json.dumps(car2Data)
         self.carControl.publish(self.car2Data)

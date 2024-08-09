@@ -31,6 +31,9 @@
 #include "ros/ros.h"
 #include "mekatronom/MpcNode.hpp"
 
+// enable this for verbose debug information
+// #define DEBUG
+
 class Djikstra  {
 public:
     Djikstra(std::string& graphml_file_path_,std::string source_node_, std::string target_node_, MpcNode& mpc_node)
@@ -39,22 +42,23 @@ public:
         clock_t stx = clock();
         pugi::xml_document doc;
         pugi::xml_parse_result result = doc.load_file(graphml_file_path_.c_str());  // Load the XML file
-        std::cout << "Result: " << result.description() << std::endl;
+        ROS_INFO_ONCE("RESULT: %s", result.description());
 
         if (!result) {
-            std::cerr << "Error loading XML file: " << result.description() << std::endl;
+            ROS_ERROR("Error loading XML file: %s", result.description());
             return;
         }
         pugi::xml_node root = doc.child("graphml");  // Adjust the root node name as per your XML structure
         if (!root) {
-            std::cerr << "Error: no root node found in the XML file." << std::endl;
+            ROS_ERROR("Error: no root node found in the XML file.");
             return;
         }
         pugi::xml_node graph = root.child("graph");
         if (!graph) {
-            std::cerr << "Error: no graph node found in the XML file." << std::endl;
+            ROS_ERROR("Error: no graph node found in the XML file.");
             return;
         }
+
         mpc_node.nodes_data_ = extract_nodes_data(graph);
 
         for (const auto& node : mpc_node.nodes_data_ ) {
@@ -83,51 +87,33 @@ public:
             flag_solla = false;
         }
 
-        /*
-        * For debugging purpose
-        */
-        std::cout << "mpc_node.nodes_data_: ";
+#ifdef DEBUG
+        std::cout << "\n\n\nNext section ismpc_node.nodes_data_:\n ";
         for (const auto& node : mpc_node.nodes_data_) {
             std::cout << std::get<0>(node) << ": (" << std::get<1>(node) << ", " << std::get<2>(node) << ") ";
         }
         std::cout << std::endl;
 
-        std::cout << "mpc_node.edges_data_: ";
+        std::cout << "\n\n\nmpc_node.edges_data_: \n";
         for (const auto& edge : mpc_node.edges_data_) {
             std::cout << std::get<0>(edge) << " -> " << std::get<1>(edge) << " (" << (std::get<2>(edge) ? "true" : "false") << ") ";
         }
         std::cout << std::endl;
-        /*
-        * For debugging purpose
-        */
-
-        clock_t etx = clock();
-        double elapsed_timex = double(etx - stx) / CLOCKS_PER_SEC;
-        std::cout << "Execution time:" << elapsed_timex << " seconds##################-----------------####################" << std::endl;
-
-        // if (flag_solla) {
-        //     pugi::xml_document doc2;
-        //     if (!doc2.load_file(graphml_file_path_.c_str())) {
-        //         std::cerr << "Error loading second XML file!" << std::endl;
-        //         return;
-        //     }
-        //     pugi::xml_node root2 = doc2.child("root2");  // Adjust the root node name as per your XML structure
-        //     mpc_node.nodes_data_  = extract_nodes_data(root2);
-        //     mpc_node.edges_data_ = extract_edges_data(root2);
-        // }
+#endif
         ROS_INFO_ONCE("Starting to extract_graph");
         auto [noded, edged] = extract_graph(mpc_node.nodes_data_, mpc_node.edges_data_);
 
-        /*
-        * For debugging purpose
-        */
-        std::cout << "noded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
-        std::cout << "noded: ";
+#ifdef DEBUG
+
+        std::cout << "\n\n\nnoded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
+
+        std::cout << "\n\n\nOutputs of noded:" << std::endl;
         for (const auto& [key, value] : noded) {
             std::cout << key << ": (" << value.x << ", " << value.y << ") ";
         }
         std::cout << std::endl;
-        std::cout << "edged: ";
+
+        std::cout << "\n\n\nOutputs of edged:" << std::endl;
         for (const auto& [key, value] : edged) {
             std::cout << key << ": ";
             for (const auto& v : value) {
@@ -136,20 +122,18 @@ public:
             std::cout << " ";
         }
         std::cout << std::endl;
-        /*
-        * For debugging purpose
-        */
+#endif
         mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.obs_dontuse_, mpc_node);
-        std::cout << "Shortest path:" << mpc_node.shortest_path_ << std::endl;
         mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
-        std::cout << "Path original:" <<  mpc_node.pathOriginal_ << std::endl;
 
-        // In the constructor, ensure you properly initialize new_node_data and source_target using structured bindings
         auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
         mpc_node.new_node_data_ = new_node_data;
 
-        std::cout << "New node data:" << new_node_data << std::endl;
-        std::cout << "ST list:" << stlist << std::endl;
+#ifdef DEBUG
+        std::cout << "\n\n\nNew node data:" << mpc_node.new_node_data_ << std::endl;
+        std::cout << "\n\n\nShortest path:" << mpc_node.shortest_path_ << std::endl;
+        std::cout << "\n\n\nPath original:" <<  mpc_node.pathOriginal_ << std::endl;
+#endif
 
         for (const auto& edge : stlist) {
             if (std::get<2>(edge)) {
@@ -163,102 +147,59 @@ public:
             }
         }
         
-        std::vector<std::tuple<int, double, double>>  path;
+        std::vector<std::tuple<int, double, double>> path;
         std::vector<std::tuple<int, double, double>> path_original;
 
         for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodesOriginal_) {
             if (mpc_node.new_node_data_.find(source_id) != mpc_node.new_node_data_.end()) {
                 const auto& source_coords = mpc_node.new_node_data_.at(source_id);
-                // Correcting insertion for pathOriginal_ which expects std::string, std::string, bool
-                path_original.emplace_back(std::stoi(source_id), source_coords.first, source_coords.second); // Assuming you want a boolean flag as 'true'.
+                path_original.emplace_back(std::stoi(source_id), source_coords.first, source_coords.second); 
             }
             if (mpc_node.new_node_data_.find(target_id) != mpc_node.new_node_data_.end()) {
                 const auto& coords = mpc_node.new_node_data_.at(target_id);
-                // Correcting insertion for path_ which expects int, double, double
-                path_original.emplace_back(std::stoi(target_id), coords.first, coords.second); // Ensure target_id is an integer string.
+                path_original.emplace_back(std::stoi(target_id), coords.first, coords.second);
             }
         }
-
-        // // Print path_original
-        // for (const auto& [source_id, target_id, flag] : path_original) {
-        //     std::cout << "Source ID: " << source_id << ", Target ID: " << target_id << ", Flag: " << (flag ? "true" : "false") << std::endl;
-        // }
 
         for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodes_) {
             try {
-                // Using target_id as a string
-                std::cout << "Target ID: " << target_id << std::endl; // Debug statement
-
                 if (mpc_node.new_node_data_.find(target_id) != mpc_node.new_node_data_.end()) {
                     const auto& coords = mpc_node.new_node_data_.at(target_id);
-                    std::cout << "Found coordinates: (" << coords.first << ", " << coords.second << ") for target_id: " << target_id << std::endl; // Debug statement
-                    path.emplace_back(std::stoi(target_id), coords.first, coords.second); // Convert target_id to int for path
+                    path.emplace_back(std::stoi(target_id), coords.first, coords.second); 
                 } else {
-                    std::cout << "target_id " << target_id << " not found in obs_dict_" << std::endl;
+                    ROS_ERROR("target_id %s not found in obs_dict_", target_id.c_str());
                 }
             } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid target_id: " << target_id << std::endl;
+                ROS_ERROR("Invalid target_id: %s", target_id.c_str());
             } catch (const std::out_of_range& e) {
-                std::cerr << "target_id out of range: " << target_id << std::endl;
+                ROS_ERROR("target_id out of range: %s", target_id.c_str());
             }
         }
 
-        std::cout << "test" << std::endl;
-
-        // Print path
-        for (const auto& [id, x, y] : path) {
-            std::cout << "Node ID: " << id << ", X: " << x << ", Y: " << y << std::endl;
-        }
-
-        std::cout << "test" << std::endl;
-        
-        // Her bir nokta için bir sonraki nokta ile arasındaki açıyı hesaplama
         std::vector<double> angles, anglesOriginal;
-
-        for(const auto& [id, x, y] : path_original)
-        {
-            std::cout << "ID: " << id << ", X: " << x << ", Y: " << y << std::endl;
-        }
 
         for (size_t i = 0; i < path_original.size() - 1; ++i) {
             try {
-                // double x1 = std::get<1>(path_original[i]);
-                // double x2 = std::get<1>(path_original[i + 1]);
-
-                // double y1 = std::get<2>(path_original[i]);
-                // double y2 = std::get<2>(path_original[i + 1]);
-
                 double dx = std::get<1>(path_original[i + 1]) - std::get<1>(path_original[i]);
                 double dy = std::get<2>(path_original[i + 1]) - std::get<2>(path_original[i]);
 
                 double angle = std::atan2(dy, dx);
                 anglesOriginal.push_back(angle);
             } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid argument: " << e.what() << " at index " << i << std::endl;
+                ROS_ERROR("Invalid argument: %s at index %d", e.what(), i);
                 continue;
             } catch (const std::out_of_range& e) {
-                std::cerr << "Out of range: " << e.what() << " at index " << i << std::endl;
+                ROS_ERROR("Out of range: %s at index %d", e.what(), i);
                 continue;
             }
         }
 
-        // Print anglesOriginal
-        for (const auto& angle : anglesOriginal) {
-            std::cout << "Angle: " << angle << std::endl;
-        }
-
         for (size_t i = 0; i < path.size() - 1; ++i) {
-            // double dx = path[i + 1].second - path[i].second;
-            // double dy = path[i + 1].third - path[i].third;
             double dx = std::get<1>(path[i+1]) - std::get<1>(path[i]);
             double dy = std::get<2>(path[i+1]) - std::get<2>(path[i]);
 
             double angle = std::atan2(dy, dx);
             angles.push_back(angle);
-        }
-
-        for (const auto& angle : angles) {
-            std::cout << "Angle: " << angle << std::endl;
         }
 
         if (!angles.empty()) {
@@ -273,19 +214,41 @@ public:
             mpc_node.pathGoalsYawDegree_.emplace_back(std::get<0>(path[i]), std::get<1>(path[i]), std::get<2>(path[i]), angles[i]);
         }
 
-        // Print pathGoalsYawDegree
-        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegree_) {
-            std::cout << "Node ID1: " << id << ", X1: " << x << ", Y1: " << y << ", Angle1: " << angle << std::endl;
-        }
-
         for (size_t i = 0; i < path_original.size(); ++i) {
             mpc_node.pathGoalsYawDegreeOriginal_.emplace_back(std::get<0>(path_original[i]), std::get<1>(path_original[i]), std::get<2>(path_original[i]), anglesOriginal[i]);
         }
 
-        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegreeOriginal_) {
-            std::cout << "Node ID2: " << id << ", X2: " << x << ", Y2: " << y << ", Angle2: " << angle << std::endl;
+#ifdef DEBUG
+        std::cout << "\n\n\nOutputs of Path:" << std::endl;
+        for (const auto& [id, x, y] : path) {
+            std::cout << "Node ID: " << id << ", X: " << x << ", Y: " << y << std::endl;
         }
 
+        std::cout << "\n\n\nOutputs of path_original:" << std::endl;
+        for(const auto& [id, x, y] : path_original)
+        {
+            std::cout << "ID: " << id << ", X: " << x << ", Y: " << y << std::endl;
+        }
+
+        std::cout << "\n\n\nOutputs of angles:" << std::endl;
+        for (const auto& angle : angles) {
+            std::cout << "Angle: " << angle << std::endl;
+        }
+
+        std::cout << "\n\n\nOutputs of pathGoalsYawDegree_:" << std::endl;       
+        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegree_) {
+            std::cout << "Node ID1: " << id << ", X1: " << x << ", Y1: " << y << ", Angle1: " << angle << std::endl;
+        }
+
+        std::cout << "\n\n\nOutputs of pathGoalsYawDegreeOriginal_:" << std::endl;
+        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegreeOriginal_) {
+            std::cout << "Node ID2: " << id << ", X2: " << x << ", Y2: " << y << ", Angle2: " << angle << std::endl;
+        }        
+
+        clock_t etx = clock();
+        double elapsed_timex = double(etx - stx) / CLOCKS_PER_SEC;
+        std::cout << "\n\n\nPasted time for DJikstra calculation:" << elapsed_timex << "seconds" << std::endl;
+#endif
         if (!mpc_node.pathGoalsYawDegreecalled_) {
             mpc_node.pathGoalsYawDegreeCopy_ = mpc_node.pathGoalsYawDegreeOriginal_;
             mpc_node.SourceTargetNodesCopy_ = mpc_node.SourceTargetNodesOriginal_;
@@ -330,8 +293,6 @@ public:
         unvisited[source] = 0;
         paths[source] = {source};  // Initialize the path for the source
 
-        std::cout << "Initial source node: " << source << std::endl;
-
         while (!unvisited.empty()) {
             // Find the node with the minimum distance
             auto minNode = *std::min_element(unvisited.begin(), unvisited.end(),
@@ -360,16 +321,8 @@ public:
 
         std::vector<std::string> yolll = nodedictt[target].atalist;
 
-
-        std::cout << "Final path to target: ";
-        for (const auto& step : yolll) {
-            std::cout << step << " ";
-        }
-        std::cout << std::endl;
-            
         if (std::find(yolll.begin(), yolll.end(), source) != yolll.end() &&
             std::find(yolll.begin(), yolll.end(), target) != yolll.end()) {
-            std::cout << "yol var@@@@@@@@@@@@@@@@@@@" << std::endl;
 
             bool trflstate = false;
             bool yayastate = false;
@@ -377,7 +330,6 @@ public:
 
             
             if (trflstate || yayastate || expathstate) {
-                std::cout << "kırmızı ışık bekliycem eski yolu kullanıcam yeni yol çıkarmıcam " << std::endl;
 
                 std::string bagendxx;
                 for (const auto& tempstopxx : yasaklistesi) {
@@ -388,11 +340,6 @@ public:
                 }
 
                 auto indexnoEXxx = std::find(mpc_node.expath_.begin(), mpc_node.expath_.end(), bagendxx) - mpc_node.expath_.begin();
-                std::cout << "ex path: ";
-                for (const auto& p : mpc_node.expath_) {
-                    std::cout << p << " ";
-                }
-                std::cout << std::endl;
 
                 std::string befbagendxx;
                 if (mpc_node.expath_.size() > 2) {
@@ -400,27 +347,15 @@ public:
                 } else {
                     befbagendxx = mpc_node.expath_[indexnoEXxx];
                 }
-                std::cout << "before bagend" << befbagendxx << std::endl;
-                std::cout << "bagend :::" << bagendxx << std::endl;
 
                 nodedictt[befbagendxx].atalist.push_back(befbagendxx);
                 return nodedictt[befbagendxx].atalist;
             } else {
                 auto yolvar = true;
                 mpc_node.expath_ = nodedictt[target].atalist;
-                std::cout << "*************************" << std::endl;
-                std::cout << "*************************" << std::endl;
-                for (const auto& p : mpc_node.expath_) {
-                    std::cout << p << " ";
-                }
-                std::cout << std::endl;
-                std::cout << "*************************" << std::endl;
-                std::cout << "*************************" << std::endl;
                 return nodedictt[target].atalist;
             }
         } else {
-            std::cout << "yol yok###################" << std::endl;
-
             std::string bagend;
             for (const auto& tempstopx : yasaklistesi) {
                 if (std::find(mpc_node.expath_.begin(), mpc_node.expath_.end(), tempstopx) != mpc_node.expath_.end()) {
@@ -428,22 +363,13 @@ public:
                     break;
                 }
             }
-
             auto indexnoEX = std::find(mpc_node.expath_.begin(), mpc_node.expath_.end(), bagend) - mpc_node.expath_.begin();
-            std::cout << "ex path: ";
-            for (const auto& p : mpc_node.expath_) {
-                std::cout << p << " ";
-            }
-            std::cout << std::endl;
-
             std::string befbagend;
             if (mpc_node.expath_.size() > 2) {
                 befbagend = mpc_node.expath_[indexnoEX - 2];
             } else {
                 befbagend = mpc_node.expath_[indexnoEX];
             }
-            std::cout << "before bagend" << befbagend << std::endl;
-            std::cout << "bagend :::" << bagend << std::endl;
 
             nodedictt[befbagend].atalist.push_back(befbagend);
             return nodedictt[befbagend].atalist;
@@ -498,7 +424,7 @@ public:
 
                 std::vector<std::string> temp_new_nodelist;
 
-                if (true) { // You can add your condition here
+                if (true) { 
                     int numPts = 2;
                     numout = 2;
 
@@ -565,14 +491,13 @@ public:
 
         std::vector<std::string>  no_way_points;
         std::vector<std::string>  no_way_points_second;
-        // Iterate over all "node" elements in the XML with the correct namespace
+
         for (pugi::xml_node node : root.children("node")) {
             std::string node_id = node.attribute("id").value();
             double d0 = 0.0;
             double d1 = 0.0;
             bool d0_found = false, d1_found = false;
 
-            // Iterate over all child elements of the node
             for (pugi::xml_node data : node.children()) {
                 std::string key = data.attribute("key").value();
                 if (key == "d0") {
@@ -586,9 +511,8 @@ public:
 
             if (d0_found && d1_found && !node_id.empty()) {
                 nodes_data.emplace_back(node_id, d0, d1);
-                // std::cout << "Extracted node: " << node_id << " (" << d0 << ", " << d1 << ")" << std::endl;
             } else {
-                std::cerr << "Error: Incomplete or missing data for node id: " << node_id << std::endl;
+                ROS_ERROR("Error: Incomplete or missing data for node id: %s", node_id.c_str());
             }
         }
 
@@ -606,12 +530,10 @@ public:
 
             if (!source_id.empty() && !target_id.empty()) {
                 edges_data.emplace_back(source_id, target_id, d2_value);
-                // std::cout << "Extracted edge: " << source_id << " -> " << target_id << " (dotted: " << d2_value << ")" << std::endl;
             } else {
-                std::cerr << "Error: Incomplete edge data source: " << source_id << " target: " << target_id << std::endl;
+                ROS_ERROR("Error: Incomplete edge data source: %s target: %s", source_id.c_str(), target_id.c_str());
             }
         }
-
         return edges_data;
     }
     
@@ -636,16 +558,6 @@ public:
             nodedict[std::get<0>(node)] = {inf, {}, sollacurrent, std::get<1>(node), std::get<2>(node)};
         }
 
-        // Print nodedict
-        std::cout << "Node Dictionary:" << std::endl;
-        for (const auto& node : nodedict) {
-            std::cout << "Node: " << node.first << " - Distance: " << node.second.distance << " - Atalist: ";
-            for (const auto& atalistNode : node.second.atalist) {
-                std::cout << atalistNode << " ";
-            }
-            std::cout << "- Pass Through: " << node.second.pass_through << " - X: " << node.second.x << " - Y: " << node.second.y << std::endl;
-        }
-
         // Fill edgedict
         for (const auto& edge : edges_data_) {
             std::string source = std::get<0>(edge);
@@ -657,12 +569,6 @@ public:
             } else {
                 edgedict[source] = {{target, d2_value}};
             }
-            // Print edgedict
-            std::cout << "Edge: " << source << " -> ";
-            for (const auto& target : edgedict[source]) {
-                std::cout << "(" << target.first << ", " << target.second << ") ";
-            }
-            std::cout << std::endl;
         }
 
         return {nodedict, edgedict};
