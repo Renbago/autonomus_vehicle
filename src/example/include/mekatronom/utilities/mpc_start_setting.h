@@ -194,6 +194,7 @@ public:
         };
 
         std::cout << "opts: " << opts << std::endl;
+
         node.mpc_setting_outputs_.solver = nlpsol("solver", "ipopt", nlp_prob, opts);
 
         /*
@@ -207,46 +208,27 @@ public:
 
         std::cout<< "node.mpc_setting_outputs_.solver: " << node.mpc_setting_outputs_.solver << std::endl;
 
-        std::cout<< "wtf0" << std::endl;
         for (int i = 0; i < node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1); i += node.mpc_setting_outputs_.n_states) {
-            // Debugging output to identify the loop iteration
-            std::cout << "Loop iteration: " << i << std::endl;
-
-            // Verify index validity
-            if (i + 2 >= lbx.size1()) {
-                std::cerr << "Index out of bounds: " << i + 2 << std::endl;
-                break; // Prevent further execution to avoid segfault
-            }
-
             // Assigning lower bounds
             lbx(i) = -DM::inf();  // Ensure lbx is initialized correctly
             lbx(i + 1) = -DM::inf();
             lbx(i + 2) = -DM::inf();
 
-            std::cout << "Assigned lower bounds for index: " << i << std::endl;
-
             // Assigning upper bounds
             ubx(i) = DM::inf();  // Ensure ubx is initialized correctly
             ubx(i + 1) = DM::inf();
             ubx(i + 2) = DM::inf();
-
-            std::cout << "Assigned upper bounds for index: " << i << std::endl;
         }
 
-        std::cout << "SOLVERx" << std::endl;
 
         for (int i = node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1); i < node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1)+2*node.initial_settings_.N; i+=2) {
-            std::cout<< "wtf1" << std::endl;
             lbx(i) = node.initial_settings_.v_min;
-            std::cout<< "wtf2" << std::endl;
             ubx(i) = node.initial_settings_.v_max;
-            std::cout<< "wtf3" << std::endl;
             lbx(i+1) = node.initial_settings_.omega_min;
             ubx(i+1) = node.initial_settings_.omega_max;
 
         }
 
-        std::cout << "SOLVER3" << std::endl;
 
         /*
         * u0 is [velocity, angular velocity]
@@ -260,23 +242,6 @@ public:
         node.mpc_setting_outputs_.args["ubg"] = ubg;
         node.mpc_setting_outputs_.args["lbx"] = lbx;
         node.mpc_setting_outputs_.args["ubx"] = ubx;
-
-        std::cout << "SOLVER4" << std::endl;
-
-
-        node.mpc_setting_outputs_.args["p"] = vertcat(
-            node.mpc_setting_outputs_.state_init,
-            node.mpc_setting_outputs_.state_target
-        );
-        node.mpc_setting_outputs_.args["x0"] = vertcat(
-            reshape(node.mpc_setting_outputs_.X0.T(), node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), 1),
-            reshape(node.mpc_setting_outputs_.u0.T(), node.mpc_setting_outputs_.n_controls * node.initial_settings_.N, 1)
-        );
-        std::cout << "SOLVER5" << std::endl;
-
-
-        std::map<std::string, casadi::DM> arg, res;
-        res = node.mpc_setting_outputs_.solver(node.mpc_setting_outputs_.args);
 
         // std::cout << "dual solution (x) = " << res.at("lbg") << std::endl;
 
