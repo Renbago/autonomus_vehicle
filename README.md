@@ -1,6 +1,9 @@
+**Hi to everyone! i just wanted to say you can easily run this project buy using docker branch instead of creating locally.**
+
 # Project explanation
 
 The autonomous driving  and connectivity algorithms on 1/10 scale vehicles, provided by the company, to navigate in a designated environment simulating a miniature smart city. This project designed for the competation named as BOSCH FUTURE MOBILITY CHALLANGE. 
+
 
 # Whats included ?
 I also wanted to share The foundation of this code was inspired by and further developed upon the work in the following GitHub repositories:
