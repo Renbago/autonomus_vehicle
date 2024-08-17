@@ -1,9 +1,0 @@
-string[]  object
-string[]  side
-float32[] distance
-float32[] depth
-float32[] size
-float32[] coordinates
-string[]  carside
-string[]  turn
-float64[] constants
