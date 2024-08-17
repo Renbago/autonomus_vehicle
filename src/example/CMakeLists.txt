@@ -12,8 +12,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-std=c++17 -Wall -Wextra)
 endif()
 
-# Add subdirectory for Casadi
-add_subdirectory(lib/casadi)
 
 # Find required packages
 find_package(Casadi REQUIRED)
