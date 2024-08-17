@@ -39,6 +39,7 @@ Follow these steps to get your project up and running in a Docker environment.
 
 ### 3. Start Docker Containers:
 ```docker-compose up```
+if you want access from terminal run this command ```docker exec -it autonomous_ws /bin/bash```
 
 ### 4. Attach Visual Studio Code to Docker Container
 
@@ -50,8 +51,17 @@ Follow these steps to get your project up and running in a Docker environment.
 
 4.Right-click on the container and select **Attach Visual Studio Code**.
 
-
 This will open a new instance of Visual Studio Code that is connected to the file system within the Docker container, allowing you to develop and debug your application directly inside the container.
+
+# For running the project:
+at one terminal:
+```roslaunch sim_pkg map_with_car.launch``` 
+the second terminal:
+```rosrun example mpc_node```
+The mpc version has not been fully finish. and the python side has not been cleaned but for want to see the project instead of ```mpc_node```
+you can run ```rosrun example mpc.py```
+
+#
 
 # Outputs from Gazebo
 
