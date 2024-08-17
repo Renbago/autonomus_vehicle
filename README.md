@@ -38,7 +38,8 @@ Follow these steps to get your project up and running in a Docker environment.
 ```docker-compose up -d --build``` 
 
 ### 3. Start Docker Containers:
-```docker-compose up```
+```docker-compose up```,
+
 if you want access from terminal run this command ```docker exec -it autonomous_ws /bin/bash```
 
 ### 4. Attach Visual Studio Code to Docker Container
