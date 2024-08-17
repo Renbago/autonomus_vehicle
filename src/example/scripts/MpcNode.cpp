@@ -1,7 +1,4 @@
 #include "mekatronom/MpcNode.hpp"
-#include "mekatronom/utilities/mpc_start_setting.h"
-
-using namespace casadi;
 
 // Constructor
 MpcNode::MpcNode(ros::NodeHandle& nh, ros::NodeHandle& nh_local) : nh_(nh), nh_local_(nh_local) 
@@ -39,34 +36,36 @@ void MpcNode::controlCb(const ros::TimerEvent& event)
             if (!mpc_started_) {
 
                 ROS_INFO_ONCE("scenerio_name_: %s", scenerio_name_.c_str());
-                MpcStartSetting mpc_start_setting(scenerio_name_, nh_local_, nh_, *this); 
+                MpcStartSetting mpc_start_setting(scenerio_name_, *this); 
+
                 mpc_started_ = true;
                 ROS_INFO_ONCE("MPC started");
-                args["p"] = DM::vertcat(mpc_start_setting., state_target);
+                // args["p"] = DM::vertcat(mpc_start_setting., state_target);
             }
-                        
+        
+            MpcRunning mpc_running(*this);            
 
-            args["x0"] = vertcat(
-                reshape(X0.T(), n_states * (N + 1), 1),
-                reshape(u0.T(), n_controls * N, 1)
-            );
+            // args["x0"] = vertcat(
+            //     reshape(X0.T(), n_states * (N + 1), 1),
+            //     reshape(u0.T(), n_controls * N, 1)
+            // );
 
-            // Uncomment for debugging
-            // std::cout << "args['x0']: " << args["x0"] << std::endl;
-            // std::cout << "args['p']: " << args["p"] << std::endl;
-            // std::cout << "u0: " << u0.T() << std::endl;
-            // std::cout << "X0: " << X0.T() << std::endl;
+            // // Uncomment for debugging
+            // // std::cout << "args['x0']: " << args["x0"] << std::endl;
+            // // std::cout << "args['p']: " << args["p"] << std::endl;
+            // // std::cout << "u0: " << u0.T() << std::endl;
+            // // std::cout << "X0: " << X0.T() << std::endl;
 
-            std::map<std::string, DM> sol = solver(
-                {{"x0", args["x0"]},
-                {"lbx", args["lbx"]},
-                {"ubx", args["ubx"]},
-                {"lbg", args["lbg"]},
-                {"ubg", args["ubg"]},
-                {"p", args["p"]}}
-            );
+            // std::map<std::string, DM> sol = solver(
+            //     {{"x0", args["x0"]},
+            //     {"lbx", args["lbx"]},
+            //     {"ubx", args["ubx"]},
+            //     {"lbg", args["lbg"]},
+            //     {"ubg", args["ubg"]},
+            //     {"p", args["p"]}}
+            // );
 
-            u = reshape((sol["x"](Slice(n_states * (N + 1), sol["x"].size1()))).T(), n_controls, N).T();
+            // u = reshape((sol["x"](Slice(n_states * (N + 1), sol["x"].size1()))).T(), n_controls, N).T();
 
         }
     }
@@ -88,7 +87,7 @@ void MpcNode::get_parameters()
         nh_.param("R1", initial_settings_.R1, 0.5);
         nh_.param("R2", initial_settings_.R2, 0.05);
         nh_.param("step_horizon", initial_settings_.step_horizon, 0.3);
-        nh_.param("N", initial_settings_.N, 8);
+        nh_.param("N", initial_settings_.N, 1);
         nh_.param("rob_diam", initial_settings_.rob_diam, 0.354);
         nh_.param("wheel_radius", initial_settings_.wheel_radius, 1.0);
         nh_.param("L_value", initial_settings_.L_value, 0.1);
@@ -100,10 +99,20 @@ void MpcNode::get_parameters()
 
         if (!graphml_file_path_is_set_) {
             try {
+                
                 graphml_file_path_ = find_file(graphml_filename_);
                 graphml_file_path_is_set_ = true;
                 ROS_INFO("GraphML file path: %s", graphml_file_path_.c_str());
                 Djikstra djikstra(graphml_file_path_,source_node_,target_node_, *this);
+                // Debug the pathGoalsYawDegreeCopy_
+                if (!pathGoalsYawDegree_.empty()) {
+                    std::cout << "Path Goals Yaw Degree Copy:" << std::endl;
+                    for (const auto& [id, x, y, angle] : pathGoalsYawDegree_) {
+                        std::cout << "Node ID: " << id << ", X: " << x << ", Y: " << y << ", Angle: " << angle << std::endl;
+                    }
+                } else {
+                    std::cout << "Path Goals Yaw Degree Copy is empty!" << std::endl;
+                }
             } catch (const std::runtime_error& e) {
                 ROS_FATAL("%s", e.what());
                 ros::shutdown();

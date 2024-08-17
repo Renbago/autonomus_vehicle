@@ -13,8 +13,8 @@
   <node pkg="tf" type="static_transform_publisher" name="map_to_odom_broadcaster"
         args="0 0 0 0 0 0 map odom 10" />
 
-  <!-- <param name="robot_description" -->
-         <!-- command="$(find xacro)/xacro '$(find models_pkg)/rcCar_assembly/model.urdf'"/> -->
+  <param name="robot_description"
+         command="$(find xacro)/xacro '$(find models_pkg)/rcCar_assembly/model.urdf'"/>
 
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
     <param name="use_gui" value="true"/>

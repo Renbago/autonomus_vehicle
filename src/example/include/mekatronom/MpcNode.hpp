@@ -1,5 +1,3 @@
-#ifndef MPCNODE_H
-#define MPCNODE_H
 #pragma once
 
 #include "ros/ros.h"
@@ -25,7 +23,11 @@
 #include <functional>
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include <filesystem>
+#include <locale.h>  
 
+// #include <mpc_start_setting2.h>
+
+using namespace casadi;
 
 namespace fs = std::filesystem;
 
@@ -76,6 +78,7 @@ public:
     double R1;
     double R2;
     double step_horizon;
+    int N;
     double rob_diam;
     double wheel_radius;
     double L_value;
@@ -84,11 +87,22 @@ public:
     double v_min;
     double omega_max;
     double omega_min;
-    int N;
     int iteration;
   } Settings;
 
   Settings initial_settings_;
+
+  typedef struct {
+    DM u0;
+    DM X0;
+    DM state_init;
+    DM state_target;
+    int n_states;
+    int n_controls;
+    std::map<std::string, DM> args;
+    Function solver;
+  } Control;
+  Control mpc_setting_outputs_;
 
   std::vector<std::tuple<std::string, double, double>> nodes_data_;
   std::vector<std::tuple<std::string, std::string, bool>> edges_data_;
@@ -111,7 +125,7 @@ public:
   std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal_;
   std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy_;
 
-  bool pathGoalsYawDegreecalled_;
+  bool pathGoalsYawDegreecalled_{false};
   
   std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
   std::vector<std::tuple<int, int, bool>> stformat(const std::vector<int>& path_short_);
@@ -190,7 +204,8 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<Args...>& t) {
     return os;
 }
 
-#include "mekatronom/utilities/mpc_start_setting.h"
+// #include "mekatronom/utilities/mpc_start_setting.h"
+#include "mekatronom/utilities/mpc_running.h"
 #include "mekatronom/utilities/djikstra.h"
+#include "mekatronom/utilities/mpc_start_setting.h"
 
-#endif  // MPCNODE_H
