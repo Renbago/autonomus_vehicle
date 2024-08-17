@@ -1,33 +1,65 @@
-The autonomous driving  and connectivity algorithms on 1/10 scale vehicles, provided by the company, to navigate in a designated environment simulating a miniature smart city. This project designed for the competation named as BOSCH FUTURE MOBILITY CHALLANGE. Its include Non-linear MPC with CasADi, Dynamic/static obstacle detection, robot_localization, Rviz visualization, djikstra and yolo.  
+# Project explanation
 
-Installation :
+The autonomous driving  and connectivity algorithms on 1/10 scale vehicles, provided by the company, to navigate in a designated environment simulating a miniature smart city. This project designed for the competation named as BOSCH FUTURE MOBILITY CHALLANGE. Its include Non-linear MPC with CasADi, Dynamic/static obstacle detection, robot_localization, Rviz visualization, djikstra and yolo. 
+
+## The simulation and real life outputs from project
+
+ [![KOU-Mekatronom Youtube Channel](https://youtube.com/playlist?list=PLDE_vDxu0Gkk-s3ndTqIScKTHSvL8dt0m&si=bbp9Qc9xVI-1Tctj)](https://youtube.com/playlist?list=PLDE_vDxu0Gkk-s3ndTqIScKTHSvL8dt0m&si=bbp9Qc9xVI-1Tctj) 
+
+## Prerequisites
+
+Before you begin, ensure you have met the following requirements:
+
+- **Docker**: You need to have Docker installed on your system. Follow the official [Docker installation guide for Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
+- **Visual Studio Code**: Install Visual Studio Code, if you haven't already.
+- **Docker Extension for Visual Studio Code**: Install the Docker extension from the Visual Studio Code marketplace.
+
+# Getting Started
+
+Follow these steps to get your project up and running in a Docker environment.
+
+### 1. Clone the Repository
+```git clone -b docker https://github.com/Renbago/autonomus_vehicle.git```
+
+### 2. Build Docker Images
+
+1.You can use this command if you suspect that a cached layer is causing issues (e.g., dependencies not updating properly), or if you made changes that Docker’s layer cache might not recognize (such as updates to apt-get or similar commands inside the Dockerfile);
+
+```docker-compose build --no-cache```
+
+2.If you've just made changes to your application code or Dockerfile and want to rebuild the image and start the containers is sufficient and faster;
+
+```docker-compose up -d --build``` 
+
+### 3. Start Docker Containers:
+```docker-compose up```
+
+### 4. Attach Visual Studio Code to Docker Container
+
+1.Open Visual Studio Code.
+
+2.Open the Docker extension panel (usually on the left sidebar).
+
+3.Find the running container for your project.
+
+4.Right-click on the container and select **Attach Visual Studio Code**.
 
 
-```
-git clone https://github.com/Renbago/autonomus_vehicle.git
+This will open a new instance of Visual Studio Code that is connected to the file system within the Docker container, allowing you to develop and debug your application directly inside the container.
 
-current_dir=$(pwd)
-
-echo 'export ROS_PACKAGE_PATH="'$current_dir'/src:$ROS_PACKAGE_PATH"' >> ~/.bashrc
-echo 'export GAZEBO_MODEL_PATH="'$current_dir'/src/models_pkg:$GAZEBO_MODEL_PATH"' >> ~/.bashrc
-
-source ~/.bashrc
-
-catkin_make
-```
-
+# Outputs from Gazebo
 
 <img src="https://github.com/ECC-BFMC/Simulator/blob/main/Picture1.png" width=30% height=30%>
 
-From new parkour:
+# From new parkour:
 
 <img src="https://github.com/KOU-Mekatronom/Simulator/blob/main/parkour.png" width=30% height=30%>
 
-From added RVIZ:
+# From added RVIZ:
 
 <img src="https://github.com/KOU-Mekatronom/Simulator/blob/main/rviz.png" width=30% height=30%>
 
-Traffic lights plugin:
+# Traffic lights plugin:
 
 <img src="https://github.com/KOU-Mekatronom/Simulator/blob/main/traffic_lights_pkg.gif" width=30% height =30%>
 
@@ -55,32 +87,5 @@ This project includes the algorithms has been made from KOU-Mekatronom::
 - Added traffic lights publisher, ```src/sim_pkg/launch/sublaunchers/traffic_lights.launch```
 - In your main code you need to subscribe ``` automobile/trafficlight/master,slave,start topics```
 
-
-The algorithms also working in real life: (soon will be updated)
-
- [![Video Title](https://youtube.com/playlist?list=PLDE_vDxu0Gkk-s3ndTqIScKTHSvL8dt0m&si=bbp9Qc9xVI-1Tctj)](https://youtube.com/playlist?list=PLDE_vDxu0Gkk-s3ndTqIScKTHSvL8dt0m&si=bbp9Qc9xVI-1Tctj)
-
-
-Needs to fix those errors:
-```
-Couldn't fix it yet. After few catkin_make the workspace will work.
-
-In file included from /home/mekatronom/autonomus_vehicle/src/plugins_pkgs/bno055_plugin/src/bno055_plugin.cpp:1:
-/home/mekatronom/autonomus_vehicle/src/plugins_pkgs/bno055_plugin/include/bno055_plugin.hpp:8:10: fatal error: utils/IMU.h: No such file or directory
-    8 | #include "utils/IMU.h"
-      |          ^~~~~~~~~~~~~
-compilation terminated.
-make[2]: *** [plugins_pkgs/bno055_plugin/CMakeFiles/bno055_plugin.dir/build.make:63: plugins_pkgs/bno055_plugin/CMakeFiles/bno055_plugin.dir/src/bno055_plugin.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:6686: plugins_pkgs/bno055_plugin/CMakeFiles/bno055_plugin.dir/all] Error 2
-make[1]: *** Waiting for unfinished jobs....
-
-In file included from /home/mekatronom/autonomus_vehicle/src/plugins_pkgs/gps_plugin/src/gps_plugin.cpp:1:
-/home/mekatronom/autonomus_vehicle/src/plugins_pkgs/gps_plugin/include/gps_plugin.hpp:10:10: fatal error: utils/localisation.h: No such file or directory
-   10 | #include "utils/localisation.h"
-      |          ^~~~~~~~~~~~~~~~~~~~~~
-compilation terminated.
-make[2]: *** [plugins_pkgs/gps_plugin/CMakeFiles/gps_plugin.dir/build.make:63: plugins_pkgs/gps_plugin/CMakeFiles/gps_plugin.dir/src/gps_plugin.cpp.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:7099: plugins_pkgs/gps_plugin/CMakeFiles/gps_plugin.dir/all] Error 2
-
-
-```
+# Contributors
+[Mehmet Baha Dursun](https://github.com/Renbago)
