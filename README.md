@@ -1,6 +1,12 @@
 # Project explanation
 
-The autonomous driving  and connectivity algorithms on 1/10 scale vehicles, provided by the company, to navigate in a designated environment simulating a miniature smart city. This project designed for the competation named as BOSCH FUTURE MOBILITY CHALLANGE. Its include Non-linear MPC with CasADi, Dynamic/static obstacle detection, robot_localization, Rviz visualization, djikstra and yolo. 
+The autonomous driving  and connectivity algorithms on 1/10 scale vehicles, provided by the company, to navigate in a designated environment simulating a miniature smart city. This project designed for the competation named as BOSCH FUTURE MOBILITY CHALLANGE. 
+
+
+# Whats included ?
+I also wanted to share The foundation of this code was inspired by and further developed upon the work in the following GitHub repositories:
+
+This project using [Non-linear MPC with CasADi](https://github.com/MMehrez/MPC-and-MHE-implementation-in-MATLAB-using-Casadi/tree/master/workshop_github), [Dynamic/static obstacle detection](https://github.com/jk-ethz/obstacle_detector), [robot_localization](https://github.com/cra-ros-pkg/robot_localization), Rviz visualization, djikstra and [yolo](https://github.com/ultralytics/ultralytics). 
 
 ## The simulation and real life outputs from project
 
