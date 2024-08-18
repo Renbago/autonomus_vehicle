@@ -1,3 +1,4 @@
+
 # Use the ROS Noetic base image
 FROM osrf/ros:noetic-desktop-full
 
@@ -72,7 +73,9 @@ RUN cd /home/$USERNAME/autonomus_ws && \
     source /opt/ros/noetic/setup.bash && \
     catkin_make
 
-RUN source /opt/ros/noetic/setup.bash 
+# Make C++ and Python files executable
+RUN find /home/$USERNAME/autonomus_ws/src/autonomus_vehicle -type f -name "*.cpp" -exec chmod +x {} \;
+RUN find /home/$USERNAME/autonomus_ws/src/autonomus_vehicle -type f -name "*.py" -exec chmod +x {} \;
 
 # Set environment variables for ROS and Gazebo
 RUN echo 'export ROS_PACKAGE_PATH="/home/'$USERNAME'/autonomus_ws/src/autonomus_vehicle/src:$ROS_PACKAGE_PATH"' >> ~/.bashrc
