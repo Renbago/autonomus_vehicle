@@ -91,9 +91,68 @@ public:
 
         node.mpc_setting_outputs_.state_init = DM::vertcat({node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
 
-        //TODO: The target if you dont have a gps should be gaven by hand, or you can use the next node_id
-        // For our scenerio in real life without gps its getting data like this.
-        node.mpc_setting_outputs_.state_target = DM::vertcat({12.09, 13.72-11.88, 0.0});
+        std::vector<double> nodes_x;
+        std::vector<double> nodes_y;
+
+        for (const auto& node : node.pathGoalsYawDegreeCopy_){
+            nodes_x.push_back(std::get<1>(node));
+            nodes_y.push_back(std::get<2>(node));
+        }
+
+        std::vector<double> distances;
+        for (size_t i =0;i<nodes_x.size();i++){
+            distances.push_back(sqrt(pow(nodes_x[i]-node.localisation_data_.x,2)+pow(nodes_y[i]-node.localisation_data_.y,2)));
+        }
+
+        auto min_it = std::min_element(distances.begin(), distances.end());
+        double min_distance = *min_it;
+        int index = std::distance(distances.begin(), min_it);
+
+        int closest_node_id = std::get<0>(node.pathGoalsYawDegreeCopy_[index]);
+        node.mpc_setting_outputs_.last_path_index = index;
+
+        // Finding the next node
+        std::pair<std::string, std::string> matching_pair;
+        for (const auto& pair : node.SourceTargetNodesCopy_) {
+            if (pair.first == std::to_string(closest_node_id)) {
+                matching_pair = pair;
+                break;
+            }
+        }
+
+        std::string next_node_id_str = matching_pair.second;
+        int next_node_id = std::stoi(next_node_id_str);  // Convert string back to int
+
+        std::tuple<int, double, double, double> matching_entry;
+        bool matching_entry_found = false;
+        for (const auto& entry : node.pathGoalsYawDegreeCopy_) {
+            if (std::get<0>(entry) == next_node_id) {
+                matching_entry = entry;
+                matching_entry_found = true;
+                break;
+            }
+        }
+
+        if (!matching_entry_found) {
+            ROS_FATAL("Matching entry not found for next node id: %d", next_node_id);
+            return;
+        } else {
+            double target_x = std::get<1>(matching_entry);
+            double target_y = std::get<2>(matching_entry);
+
+            double dx = target_x - node.localisation_data_.x;
+            double dy = target_y - node.localisation_data_.y;
+            double yaw = std::atan2(dy, dx);
+
+            int goal_id = std::get<0>(matching_entry);
+
+            node.mpc_setting_outputs_.state_init = DM(std::vector<double>{node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
+            node.mpc_setting_outputs_.state_target = DM(std::vector<double>{target_x, target_y, yaw});
+
+            std::cout << "state_init: " << node.mpc_setting_outputs_.state_init << std::endl;
+            std::cout << "state_target: " << node.mpc_setting_outputs_.state_target << std::endl;
+        }
+
 
         /*
         * Initial settings for the MPC 
@@ -134,7 +193,7 @@ public:
 
         );
 
-        Function f = Function("f", {states, controls}, {RHS});
+        node.mpc_setting_outputs_.f = Function("f", {states, controls}, {RHS});
 
         SX cost_fn = 0; 
         SX g = X(Slice(), 0) - P(Slice(0, node.mpc_setting_outputs_.n_states)); 
@@ -155,10 +214,10 @@ public:
 
             SX st_next = X(Slice(), k+1);
 
-            auto k1 = f(std::vector<SX>{st, con});
-            auto k2 = f(std::vector<SX>{st + (node.initial_settings_.step_horizon / 2) * k1.at(0), con});
-            auto k3 = f(std::vector<SX>{st + (node.initial_settings_.step_horizon / 2) * k2.at(0), con});
-            auto k4 = f(std::vector<SX>{st + node.initial_settings_.step_horizon * k3.at(0), con});
+            auto k1 = node.mpc_setting_outputs_.f(std::vector<SX>{st, con});
+            auto k2 = node.mpc_setting_outputs_.f(std::vector<SX>{st + (node.initial_settings_.step_horizon / 2) * k1.at(0), con});
+            auto k3 = node.mpc_setting_outputs_.f(std::vector<SX>{st + (node.initial_settings_.step_horizon / 2) * k2.at(0), con});
+            auto k4 = node.mpc_setting_outputs_.f(std::vector<SX>{st + node.initial_settings_.step_horizon * k3.at(0), con});
 
             SX st_next_RK4 = st + (node.initial_settings_.step_horizon / 6) * (k1.at(0) + 2*k2.at(0) + 2*k3.at(0) + k4.at(0));
             std::cout << "st_next: " << st_next << std::endl;
