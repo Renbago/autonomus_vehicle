@@ -244,7 +244,8 @@ public:
         node.mpc_setting_outputs_.args["ubx"] = ubx;
 
         // std::cout << "dual solution (x) = " << res.at("lbg") << std::endl;
-
+        node.mpc_setting_outputs_.cat_states = node.mpc_setting_outputs_.X0;
+        node.mpc_setting_outputs_.cat_controls = DM::zeros(0,node.mpc_setting_outputs_.u0.columns());
         // Check number of constraints
         std::cout << "Number of constraints in g: " << g.size1() << std::endl;
         std::cout << "Expected number of constraints: " << lbg.size1() << std::endl;
