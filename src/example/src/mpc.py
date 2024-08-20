@@ -171,8 +171,6 @@ class MPC():
         self.t0 = self.t0 + self.step_horizon
         self.u0 = ca.vertcat(self.u[1:, :], self.u[-1, :])
 
-        #print("self.u0",self.u0)
-
     def mpc_start_settings(self):
         # print("mpcsettings")
 
@@ -272,7 +270,6 @@ class MPC():
         nodes_x = np.array([node[1] for node in self.pathGoalsYawDegreeCopy])
         nodes_y = np.array([node[2] for node in self.pathGoalsYawDegreeCopy])
         
-        
         distances = np.sqrt((nodes_x - self.position_x)**2 + (nodes_y - self.position_y)**2)
         min_distance, index = min((val, idx) for (idx, val) in enumerate(distances))
         closest_node_id = self.pathGoalsYawDegreeCopy[index][0]
@@ -301,6 +298,9 @@ class MPC():
         self.goal_id = matching_entry
         state_init = ca.DM([self.position_x, self.position_y, self.yaw_rad])        # initial state
         state_target = ca.DM([target_x, target_y, yaw])
+
+        print("state_init",state_init)
+        print("state_target",state_target)
 
         #bu eklediğim state_target kısmıyla buradan state_target girmene gerek kalmaması lazım. sadece zed'e konum girsen olur.
 
@@ -609,10 +609,19 @@ class MPC():
                     p=self.args['p']
                 )
 
+                print("x0",self.args['x0'])
+                print("lbx",self.args['lbx'])
+                print("ubx",self.args['ubx'])
+                print("lbg",self.args['lbg'])
+                print("ubg",self.args['ubg'])
+                print("p",self.args['p'])
+
                 self.u = ca.reshape((sol['x'][self.n_states * (self.N + 1):]).T, self.n_controls, self.N).T
+                print("sol['x']",sol['x'])  
+                print("self.u",self.u)
+                print("\n\n\nstate_target",self.state_target)
 
                 # Daha sonra yeniden şekillendirin
-
                 # print("self.u",self.u)
 
                 self.cat_states = np.dstack((
@@ -625,8 +634,10 @@ class MPC():
                     self.DM2Arr(self.u[0, :])
                 ))
 
-
                 self.shift_timestep()
+                
+                # print("self.u0",self.u0)
+
                 #print("output_shift_time_step")
                 self.X0 = ca.reshape((sol['x'][: self.n_states * (self.N+1)]).T, self.n_states, self.N+1).T
                 # print("self.X0 ",self.X0)
@@ -636,6 +647,7 @@ class MPC():
                     ca.reshape(self.X0[-1, :], 1, -1)
                 )
 
+                # print("self.X0",self.X0)
                 # xx ...
 
                 # print("u",self.u)
@@ -666,8 +678,6 @@ class MPC():
                     #print(self.nodedatabest)
                     print("self.current_id",self.current_id)
                     #print(self.path_original)
-
-
 
                     now=self.current_id_original
                     if self.nodedatabest[now]["solla"]:
@@ -2035,8 +2045,8 @@ class MPC():
         carData = {}
         carData = {
             'action': '2',
-            'steerAngle': self.steerAngle 
-            # 'steerAngle': 0.0
+            # 'steerAngle': self.steerAngle 
+            'steerAngle': 0.0
         }
         # print("data",carData)
         self.carData = json.dumps(carData)
@@ -2046,8 +2056,8 @@ class MPC():
         # İkinci mesaj için veriler
         car2Data = {
             'action': '1',
-            'speed': self.steerLateral  
-            # 'speed': 0.0
+            # 'speed': self.steerLateral  
+            'speed': 0.0
         }   
         self.car2Data = json.dumps(car2Data)
         self.carControl.publish(self.car2Data)
