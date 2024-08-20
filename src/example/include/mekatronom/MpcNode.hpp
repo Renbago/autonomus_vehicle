@@ -101,6 +101,8 @@ public:
     int n_controls;
     std::map<std::string, DM> args;
     Function solver;
+    DM cat_states;
+    DM cat_controls;
   } Control;
   Control mpc_setting_outputs_;
 
@@ -109,6 +111,8 @@ public:
   std::vector<std::tuple<int, int, bool>> edges_data_true_ilkverisyon_;
   std::vector<std::string> parking_nodes_id_;
   std::vector<std::string> obs_dontuse_ = {"273"};
+  std::string car_behaviour_state_ = "keep_lane";
+
 
   std::map<std::string, std::pair<double, double>> obstacle_node_positions_;
   std::vector<std::tuple<std::string, std::string, bool>> pathOriginal_;
