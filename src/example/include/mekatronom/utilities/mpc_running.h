@@ -115,11 +115,40 @@ public:
                 return;
             }
 
-            // Extract solutions
-            DM x_opt = sol["x"];
-            std::cout << "Optimal solution: " << x_opt << std::endl;
+            DM sliced_sol_x = sol["x"](Slice(0, node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1))).T();
+            DM reshaped_X0 = reshape(sliced_sol_x, node.mpc_setting_outputs_.n_states, node.initial_settings_.N + 1);
+            node.mpc_setting_outputs_.X0 = reshaped_X0.T();
+
+            // Extract all rows except the first one
+            DM X0_shifted_up = node.mpc_setting_outputs_.X0(Slice(1, node.mpc_setting_outputs_.X0.rows()), Slice());
+
+            // Extract the last row and reshape it to 1 row by N columns
+            DM last_row_reshaped = reshape(node.mpc_setting_outputs_.X0(node.mpc_setting_outputs_.X0.rows()-1, Slice()), 1, node.mpc_setting_outputs_.X0.columns());
+
+            // Vertically concatenate the shifted matrix with the reshaped last row
+            node.mpc_setting_outputs_.X0 = vertcat(X0_shifted_up, last_row_reshaped);
+
+            std::cout << "node.mpc_setting_outputs_.X0"<< node.mpc_setting_outputs_.X0 << std::endl;
+
+            if (node.car_behaviour_state_ == "keep_lane")
+            {
+                std::cout <<"test"<<std::endl;
+            }
 
 
+            /*
+            * This part just for holding all of the data's all control outputs and states.
+            */
+            // for (int i = 0; i < node.initial_settings_.N; ++i) {
+            //     // Update cat_states
+            //     node.mpc_setting_outputs_.cat_states = horzcat(node.mpc_setting_outputs_.cat_states, node.mpc_setting_outputs_.X0);  // This stacks X0 horizontally, but for "layers", you'd store separately
+
+            //     // Update cat_controls
+            //     DM new_control = node.mpc_setting_outputs_.u0(0, Slice());  // Get the first row of u0
+            //     node.mpc_setting_outputs_.cat_controls = vertcat(node.mpc_setting_outputs_.cat_controls, new_control);  // Append the new control to cat_controls
+            // }
+
+            
         } catch (const std::exception& e) {
             std::cerr << "Solver error: " << e.what() << std::endl;
             return;
