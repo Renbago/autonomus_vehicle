@@ -37,37 +37,20 @@ class MpcRunning
 public:
     MpcRunning(MpcNode& node)
     {
-        ROS_INFO_ONCE("MpcRunning constructor");
-
-        node.mpc_setting_outputs_.args["p"] = vertcat(
-            node.mpc_setting_outputs_.state_init,
-            node.mpc_setting_outputs_.state_target
-        );
-        node.mpc_setting_outputs_.args["x0"] = vertcat(
-            reshape(node.mpc_setting_outputs_.X0.T(), node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), 1),
-            reshape(node.mpc_setting_outputs_.u0.T(), node.mpc_setting_outputs_.n_controls * node.initial_settings_.N, 1)
-        );
-
-        std::cout << "Solver setup: " << node.mpc_setting_outputs_.solver << std::endl;
         try {
-            std::cout << "x0 size: " << node.mpc_setting_outputs_.args["x0"].size1() 
-                    << " x " << node.mpc_setting_outputs_.args["x0"].size2() << std::endl;
-            
-            std::cout << "lbx size: " << node.mpc_setting_outputs_.args["lbx"].size1() 
-                    << " x " << node.mpc_setting_outputs_.args["lbx"].size2() << std::endl;
 
-            std::cout << "ubx size: " << node.mpc_setting_outputs_.args["ubx"].size1() 
-                    << " x " << node.mpc_setting_outputs_.args["ubx"].size2() << std::endl;
+            ROS_INFO_ONCE("MpcRunning constructor");
 
-            std::cout << "lbg size: " << node.mpc_setting_outputs_.args["lbg"].size1() 
-                    << " x " << node.mpc_setting_outputs_.args["lbg"].size2() << std::endl;
+            node.mpc_setting_outputs_.args["p"] = vertcat(
+                node.mpc_setting_outputs_.state_init,
+                node.mpc_setting_outputs_.state_target
+            );
+            node.mpc_setting_outputs_.args["x0"] = vertcat(
+                reshape(node.mpc_setting_outputs_.X0.T(), node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), 1),
+                reshape(node.mpc_setting_outputs_.u0.T(), node.mpc_setting_outputs_.n_controls * node.initial_settings_.N, 1)
+            );
 
-            std::cout << "ubg size: " << node.mpc_setting_outputs_.args["ubg"].size1() 
-                    << " x " << node.mpc_setting_outputs_.args["ubg"].size2() << std::endl;
-
-            std::cout << "p size: " << node.mpc_setting_outputs_.args["p"].size1() 
-                    << " x " << node.mpc_setting_outputs_.args["p"].size2() << std::endl;
-
+            std::cout << "Solver setup: " << node.mpc_setting_outputs_.solver << std::endl;
             // Debug values
             std::cout << "x0 values: " << node.mpc_setting_outputs_.args["x0"] << std::endl;
             std::cout << "lbx values: " << node.mpc_setting_outputs_.args["lbx"] << std::endl;
@@ -115,6 +98,26 @@ public:
                 return;
             }
 
+            DM u_portion = sol["x"](Slice(node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), Slice().stop));
+            node.mpc_setting_outputs_.u = reshape(u_portion.T(), node.mpc_setting_outputs_.n_controls, node.initial_settings_.N).T();
+
+
+            std::cout << "sol['x']: " << sol["x"] << std::endl;
+            std::cout << "u_portion: " << u_portion << std::endl;   
+            
+            std::cout << "u output" << node.mpc_setting_outputs_.u << std::endl;
+
+            std::cout << "node.mpc_setting_outputs_.state_target" << node.mpc_setting_outputs_.state_target << std::endl;
+
+            shift_timestep(node);
+
+            node.mpc_setting_outputs_.u0 = vertcat(
+                node.mpc_setting_outputs_.u(Slice(1, node.mpc_setting_outputs_.u.rows()), Slice()), 
+                node.mpc_setting_outputs_.u(Slice(-1), Slice())
+            );
+
+            // std::cout <<"u0 output"<< node.mpc_setting_outputs_.u0<<std::endl;
+
             DM sliced_sol_x = sol["x"](Slice(0, node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1))).T();
             DM reshaped_X0 = reshape(sliced_sol_x, node.mpc_setting_outputs_.n_states, node.initial_settings_.N + 1);
             node.mpc_setting_outputs_.X0 = reshaped_X0.T();
@@ -128,14 +131,21 @@ public:
             // Vertically concatenate the shifted matrix with the reshaped last row
             node.mpc_setting_outputs_.X0 = vertcat(X0_shifted_up, last_row_reshaped);
 
-            std::cout << "node.mpc_setting_outputs_.X0"<< node.mpc_setting_outputs_.X0 << std::endl;
+            // std::cout << "node.mpc_setting_outputs_.X0"<< node.mpc_setting_outputs_.X0 << std::endl;
 
             if (node.car_behaviour_state_ == "keep_lane")
             {
-                std::cout <<"test"<<std::endl;
+                // Access the value at (0, 1) in the matrix and convert it to a double
+                double steerAngleValue = static_cast<double>(node.mpc_setting_outputs_.u(0, 1));
+                node.mpc_setting_outputs_.steerAngle = (180.0 / M_PI) * steerAngleValue;
+                
+                // Access the value at (0, 0) in the matrix and convert it to a double
+                double steerLateralValue = static_cast<double>(node.mpc_setting_outputs_.u(0, 0));
+                node.mpc_setting_outputs_.steerLateral = steerLateralValue;
             }
 
-
+            std::cout<< "node.mpc_setting_outputs_.steerAngle" << node.mpc_setting_outputs_.steerAngle << std::endl;
+            std::cout<< "node.mpc_setting_outputs_.steerLateral" << node.mpc_setting_outputs_.steerLateral << std::endl;
             /*
             * This part just for holding all of the data's all control outputs and states.
             */
@@ -153,7 +163,30 @@ public:
             std::cerr << "Solver error: " << e.what() << std::endl;
             return;
         }
+    }
 
+    void shift_timestep(MpcNode& node) {
+        // Initialize state_init with the current position and orientation
+        node.mpc_setting_outputs_.state_init = DM(std::vector<double>{
+            node.localisation_data_.x,
+            node.localisation_data_.y,
+            node.localisation_data_.yaw
+        });
+
+        // Prepare the inputs for the CasADi function
+        std::vector<DM> f_inputs = {
+            node.mpc_setting_outputs_.state_init, 
+            node.mpc_setting_outputs_.u(Slice(0), Slice()).T()
+        };
+
+        // Call the function and compute next_state (assuming f returns a vector of DM)
+        std::vector<DM> f_outputs = node.mpc_setting_outputs_.f(f_inputs);
+        DM f_value = f_outputs[0];
+
+        // Update the next state
+        node.mpc_setting_outputs_.next_state = node.mpc_setting_outputs_.state_init + 
+                                            (node.initial_settings_.step_horizon * f_value);
+        
     }
 
 };
