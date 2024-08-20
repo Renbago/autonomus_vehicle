@@ -97,12 +97,18 @@ public:
     DM X0;
     DM state_init;
     DM state_target;
+    DM next_state;
     int n_states;
     int n_controls;
     std::map<std::string, DM> args;
     Function solver;
     DM cat_states;
     DM cat_controls;
+    Function f;
+    double steerAngle;
+    double steerLateral;
+    DM u;
+    int last_path_index;
   } Control;
   Control mpc_setting_outputs_;
 
@@ -144,7 +150,7 @@ public:
   std::string scenerio_name_;
   std::string graphml_filename_ = "gercek2.graphml";
 
-
+  void shift_timestep(MpcNode& node);
 
   std::string find_file(const std::string& filename) {
       fs::path current_path = fs::current_path();
