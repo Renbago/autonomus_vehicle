@@ -94,7 +94,7 @@ public:
         std::vector<double> nodes_x;
         std::vector<double> nodes_y;
 
-        for (const auto& node : node.pathGoalsYawDegreeCopy_){
+        for (const auto& node : node.djikstra_outputs_.pathGoalsYawDegreeCopy){
             nodes_x.push_back(std::get<1>(node));
             nodes_y.push_back(std::get<2>(node));
         }
@@ -108,12 +108,12 @@ public:
         double min_distance = *min_it;
         int index = std::distance(distances.begin(), min_it);
 
-        int closest_node_id = std::get<0>(node.pathGoalsYawDegreeCopy_[index]);
+        int closest_node_id = std::get<0>(node.djikstra_outputs_.pathGoalsYawDegreeCopy[index]);
         node.mpc_setting_outputs_.last_path_index = index;
 
         // Finding the next node
         std::pair<std::string, std::string> matching_pair;
-        for (const auto& pair : node.SourceTargetNodesCopy_) {
+        for (const auto& pair : node.djikstra_outputs_.SourceTargetNodesCopy) {
             if (pair.first == std::to_string(closest_node_id)) {
                 matching_pair = pair;
                 break;
@@ -125,7 +125,7 @@ public:
 
         std::tuple<int, double, double, double> matching_entry;
         bool matching_entry_found = false;
-        for (const auto& entry : node.pathGoalsYawDegreeCopy_) {
+        for (const auto& entry : node.djikstra_outputs_.pathGoalsYawDegreeCopy) {
             if (std::get<0>(entry) == next_node_id) {
                 matching_entry = entry;
                 matching_entry_found = true;
