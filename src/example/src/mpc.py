@@ -609,16 +609,10 @@ class MPC():
                     p=self.args['p']
                 )
 
-                print("x0",self.args['x0'])
-                print("lbx",self.args['lbx'])
-                print("ubx",self.args['ubx'])
-                print("lbg",self.args['lbg'])
-                print("ubg",self.args['ubg'])
-                print("p",self.args['p'])
+
 
                 self.u = ca.reshape((sol['x'][self.n_states * (self.N + 1):]).T, self.n_controls, self.N).T
-                print("sol['x']",sol['x'])  
-                print("self.u",self.u)
+
                 print("\n\n\nstate_target",self.state_target)
 
                 # Daha sonra yeniden şekillendirin
@@ -707,7 +701,8 @@ class MPC():
                         closest_node_id_original = self.pathGoalsYawDegreeOriginal[index_original][0]
                         
                         self.current_id_original = closest_node_id_original
-
+                        print("\n\n\n\ncurrent_id_original",self.current_id_original)
+                        print("\n\n\n\n\ncurrent_id",self.current_id)
 
                     else:
                         nodes_x = np.array([node[1] for node in self.pathGoalsYawDegreeCopy])
@@ -2045,8 +2040,8 @@ class MPC():
         carData = {}
         carData = {
             'action': '2',
-            # 'steerAngle': self.steerAngle 
-            'steerAngle': 0.0
+            'steerAngle': self.steerAngle 
+            # 'steerAngle': 0.0
         }
         # print("data",carData)
         self.carData = json.dumps(carData)
@@ -2056,16 +2051,14 @@ class MPC():
         # İkinci mesaj için veriler
         car2Data = {
             'action': '1',
-            # 'speed': self.steerLateral  
-            'speed': 0.0
+            'speed': self.steerLateral  
+            # 'speed': 0.0
         }   
         self.car2Data = json.dumps(car2Data)
         self.carControl.publish(self.car2Data)
         # print("self.steerAngle",self.steerAngle)
         # print("self.steerLateral",self.steerLateral)
         
-        
-
     def localisation_callback(self, data):
         # rospy.loginfo("Received localisation data - Timestamp: %s, posA: %f, posB: %f, rotA: %f, rotB: %f",
         #                 data.timestamp, data.posA , 13.8-data.posB , data.rotA, data.rotB)
