@@ -24,10 +24,11 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include <filesystem>
 #include <locale.h>  
-
+#include <nlohmann/json.hpp>
 // #include <mpc_start_setting2.h>
 
 using namespace casadi;
+using json = nlohmann::json;
 
 namespace fs = std::filesystem;
 
@@ -37,6 +38,8 @@ public:
   MpcNode(ros::NodeHandle& nh, ros::NodeHandle& nh_local);
   ~MpcNode();
   
+  ros::Publisher carControl_pub_;
+
   // std::vector<std::tuple<std::string, double, double>> extract_nodes_data(pugi::xml_node root);
   // std::vector<std::tuple<std::string, std::string, bool>> extract_edges_data(pugi::xml_node root);
   // std::vector<int> finding_path(int temp_source_, int temp_target_, std::map<int, std::pair<double, double>>& noded_, std::map<int, std::pair<int, int>>& edged_, std::vector<std::string>& obs_dontuse_);
@@ -68,7 +71,6 @@ public:
     double pitch;
     double yaw;
   } Pose;
-
   Pose localisation_data_;
 
   typedef struct {
@@ -88,9 +90,19 @@ public:
     double omega_max;
     double omega_min;
     int iteration;
+    double goal_checker{0.2};
   } Settings;
-
   Settings initial_settings_;
+
+  typedef struct {
+    std::vector<std::pair<std::string, std::string>> SourceTargetNodesOriginal;
+    std::vector<std::pair<std::string, std::string>> SourceTargetNodes;
+    std::vector<std::pair<std::string, std::string>> SourceTargetNodesCopy;
+    std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegree;
+    std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal;
+    std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy;
+  } djikstra_outputs;
+  djikstra_outputs djikstra_outputs_; 
 
   typedef struct {
     DM u0;
@@ -128,13 +140,6 @@ public:
   std::vector<std::string> expath_;
   std::vector<std::string> shortest_path_;
   
-  std::vector<std::pair<std::string, std::string>> SourceTargetNodesOriginal_;
-  std::vector<std::pair<std::string, std::string>> SourceTargetNodes_;
-  std::vector<std::pair<std::string, std::string>> SourceTargetNodesCopy_;
-  std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegree_;
-  std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal_;
-  std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy_;
-
   bool pathGoalsYawDegreecalled_{false};
   
   std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
@@ -150,7 +155,17 @@ public:
   std::string scenerio_name_;
   std::string graphml_filename_ = "gercek2.graphml";
 
-  void shift_timestep(MpcNode& node);
+  void shiftTimestep(MpcNode& node);
+  void carControlPublisher(MpcNode& node);
+
+  // Function to calculate the closest node ID in pathGoalsYawDegree_
+  int calculateClosestNodeId(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree,
+                              double position_x, double position_y, size_t& last_path_index);
+
+  // Function to calculate the closest node ID in pathGoalsYawDegreeOriginal_
+  int calculateClosestNodeIdOriginal(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegreeOriginal,
+                                      double position_x, double position_y, size_t& last_path_index);
+
 
   std::string find_file(const std::string& filename) {
       fs::path current_path = fs::current_path();
@@ -170,7 +185,7 @@ private:
   void imuCb(const sensor_msgs::Imu::ConstPtr& msg);
   void localisationCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg); 
   void process_and_publish_data(int temp_source, int temp_target);
-
+  
   void function_one();
   void get_parameters();
 
@@ -189,7 +204,6 @@ private:
   ros::Subscriber image_sub_;
   // Publishers
   ros::Publisher cmd_pub_;
-  ros::Publisher carControl_pub_;
   // Node Handle
   ros::NodeHandle nh_;
   ros::NodeHandle nh_local_;
