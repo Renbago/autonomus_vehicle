@@ -28,7 +28,6 @@
 
 #pragma once
 
-#include "ros/ros.h"
 #include "mekatronom/MpcNode.hpp"
 
 // enable this for verbose debug information
@@ -66,7 +65,7 @@ public:
             if (std::find(mpc_node.parking_nodes_id_.begin(), mpc_node.parking_nodes_id_.end(), node_id) != mpc_node.parking_nodes_id_.end()) {
                 double x = std::get<1>(node);
                 double y = std::get<2>(node);
-                mpc_node.obstacle_node_positions_[node_id] = std::make_pair(x, y);
+                mpc_node.djikstra_outputs_.obstacle_node_positions[node_id] = std::make_pair(x, y);
             }
         }
 
