@@ -52,7 +52,6 @@ public:
     double x;
     double y;
   } NodeInfo;
-
   NodeInfo node_info_;
 
   typedef struct {
@@ -60,7 +59,6 @@ public:
     std::string node_name;
     bool pass_through;
   } EdgeInfo;
-
   EdgeInfo edge_info_;
 
   typedef struct {
@@ -91,6 +89,10 @@ public:
     double omega_min;
     int iteration;
     double goal_checker{0.2};
+    std::vector<std::string> parking_nodes_id{"900","901","902","903","904","910","911","912","913","914"};
+    std::vector<std::string> parking_spot_is_full;
+    std::string source_node{"263"};
+    std::string target_node{"244"};
   } Settings;
   Settings initial_settings_;
 
@@ -101,6 +103,7 @@ public:
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegree;
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal;
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy;
+    std::map<std::string, std::pair<double, double>> obstacle_node_positions;
   } djikstra_outputs;
   djikstra_outputs djikstra_outputs_; 
 
@@ -131,8 +134,7 @@ public:
   std::vector<std::string> obs_dontuse_ = {"273"};
   std::string car_behaviour_state_ = "keep_lane";
 
-
-  std::map<std::string, std::pair<double, double>> obstacle_node_positions_;
+  std::vector<int> center_x_, center_y_;
   std::vector<std::tuple<std::string, std::string, bool>> pathOriginal_;
   std::vector<std::tuple<int, double, double>> path_;
   std::map<std::string, std::pair<double, double>> new_node_data_;
@@ -155,16 +157,12 @@ public:
   std::string scenerio_name_;
   std::string graphml_filename_ = "gercek2.graphml";
 
+
+  // Public Functions for mpc_running.h
   void shiftTimestep(MpcNode& node);
   void carControlPublisher(MpcNode& node);
-
-  // Function to calculate the closest node ID in pathGoalsYawDegree_
-  int calculateClosestNodeId(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree,
-                              double position_x, double position_y, size_t& last_path_index);
-
-  // Function to calculate the closest node ID in pathGoalsYawDegreeOriginal_
-  int calculateClosestNodeIdOriginal(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegreeOriginal,
-                                      double position_x, double position_y, size_t& last_path_index);
+  // int calculateClosestNodeId(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree,
+  //                             double position_x, double position_y);
 
 
   std::string find_file(const std::string& filename) {
@@ -210,8 +208,7 @@ private:
 
   sensor_msgs::Image image_data_;
 
-  std::string source_node_ = {"263"};
-  std::string target_node_ = {"244"};
+
 
 };
 
@@ -229,7 +226,7 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<Args...>& t) {
 }
 
 // #include "mekatronom/utilities/mpc_start_setting.h"
-#include "mekatronom/utilities/mpc_running.h"
 #include "mekatronom/utilities/djikstra.h"
+#include "mekatronom/utilities/mpc_running.h"
 #include "mekatronom/utilities/mpc_start_setting.h"
 
