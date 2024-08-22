@@ -159,19 +159,18 @@ public:
         if (distance < node.initial_settings_.goal_checker) {
 
             if(node.djikstra_outputs_.pathGoalsYawDegree.size() > 0) {
-                
-                size_t last_path_index;
-                int closest_node_id = calculateClosestNodeId(
-                                            node.djikstra_outputs_.pathGoalsYawDegree, 
-                                            node.localisation_data_.x, node.localisation_data_.y, 
-                                            last_path_index);
-                
-                int closest_node_id_original = calculateClosestNodeIdOriginal(node.djikstra_outputs_.pathGoalsYawDegreeOriginal, 
-                                                                        node.localisation_data_.x, node.localisation_data_.y);
+                std::string closest_node_id = calculateClosestNodeId( node.djikstra_outputs_.pathGoalsYawDegree, 
+                                                            node.localisation_data_.x, node.localisation_data_.y);
+            }
+            else {
+                std::string closest_node_id = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeCopy, 
+                                                                node.localisation_data_.x, node.localisation_data_.y);
+            }
 
-                std::cout << "\n\n\n\n\nclosest_node_id: " << closest_node_id << std::endl;
-                std::cout << "closest_node_id_original: " << closest_node_id_original << "\n\n\n"<< std::endl;
-            }   
+            std::string closest_node_id_original = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeOriginal, 
+                                                                    node.localisation_data_.x, node.localisation_data_.y);
+            processObstacles(node,closest_node_id_original);
+
         }
 
         std::cout<< "node.mpc_setting_outputs_.steerAngle" << node.mpc_setting_outputs_.steerAngle << std::endl;
@@ -179,10 +178,89 @@ public:
 
     }
 
-    int calculateClosestNodeId(
+    void processObstacles(MpcNode& node, const std::string& closest_node_id_original) {
+        std::vector<std::string> sign_looking_band;
+        std::string current_id_for_obstacles = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeCopy, 
+                                                                    node.localisation_data_.x, node.localisation_data_.y);
+        for (int i = 1; i <= 5; ++i) {
+            auto matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, current_id_for_obstacles);
+            auto matching_entry = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, current_id_for_obstacles);
+
+            if (!matching_pairs_signs.empty()) {
+                std::string next_id_signs = matching_pairs_signs[0].second;
+
+                auto matching_entry_second = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, next_id_signs);
+                auto third_matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, next_id_signs);
+                if (!third_matching_pairs_signs.empty()) {
+                    auto matching_entry_third = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, third_matching_pairs_signs[0].second);   
+                }
+                sign_looking_band.push_back(current_id_for_obstacles);
+                current_id_for_obstacles = next_id_signs;
+
+                std::array<double, 2> target_position = {std::get<1>(matching_entry), std::get<2>(matching_entry)};
+                double x_diff = std::abs(std::get<1>(matching_entry) - std::get<1>(matching_entry_second));
+                double y_diff = std::abs(std::get<2>(matching_entry) - std::get<2>(matching_entry_second));
+
+                double x_thereshold = 0.1;
+                double y_thereshold = 0.1;
+
+                findingObstacleNodes(node, closest_node_id_original);
+            }
+        }
+    }
+
+    void findingObstacleNodes(MpcNode& node, const std::string& closest_node_id_original) {
+        for (size_t i = 0; i < node.center_x_.size(); ++i) {
+            std::vector<double> obstacle_position = {node.center_x_[i], node.center_y_[i]};
+
+            for (const auto& [node_id, coordinates] : node.djikstra_outputs_.obstacle_node_positions) {
+                double x = coordinates.first;
+                double y = coordinates.second;
+                double distance = std::sqrt(std::pow(node.center_x_[i] - x, 2) + std::pow(node.center_y_[i] - y, 2));
+
+                if (distance <= 0.4 && std::find(node.initial_settings_.parking_spot_is_full.begin(), 
+                                                node.initial_settings_.parking_spot_is_full.end(), node_id) == node.initial_settings_.parking_spot_is_full.end()) {
+
+                    node.initial_settings_.parking_spot_is_full.push_back(node_id);
+                    node.initial_settings_.parking_nodes_id.erase(std::remove(node.initial_settings_.parking_nodes_id.begin(), 
+                                                                            node.initial_settings_.parking_nodes_id.end(), node_id), 
+                                                                node.initial_settings_.parking_nodes_id.end());
+                }
+            }
+
+            if (std::find(node.initial_settings_.parking_nodes_id.begin(), 
+                        node.initial_settings_.parking_nodes_id.end(), 
+                        node.initial_settings_.target_node) != node.initial_settings_.parking_nodes_id.end()) 
+            {
+                node.initial_settings_.target_node = node.initial_settings_.parking_nodes_id[0];
+                Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node);
+            }
+        }
+    }
+
+
+    std::vector<std::pair<std::string, std::string>> findMatchingPairs(const std::vector<std::pair<std::string, std::string>>& sourceTargetNodes, const std::string& current_id) {
+        std::vector<std::pair<std::string, std::string>> matching_pairs;
+        for (const auto& pair : sourceTargetNodes) {
+            if (pair.first == current_id) {
+                matching_pairs.push_back(pair);
+            }
+        }
+        return matching_pairs;
+    }
+
+    std::tuple<int, double, double, double> findMatchingEntry(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree, const std::string& current_id) {
+        for (const auto& entry : pathGoalsYawDegree) {
+            if (std::to_string(std::get<0>(entry)) == current_id) {
+                return entry;
+            }
+        }
+        throw std::runtime_error("Matching entry not found");
+    }
+
+    std::string calculateClosestNodeId(
         const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree,
-        double position_x, double position_y,
-        size_t& last_path_index)
+        double position_x, double position_y)
     {
         if (pathGoalsYawDegree.empty()) {
             throw std::runtime_error("pathGoalsYawDegree is empty");
@@ -203,39 +281,11 @@ public:
         }
 
         auto min_it = std::min_element(distances.begin(), distances.end());
-        last_path_index = std::distance(distances.begin(), min_it);
-        return std::get<0>(pathGoalsYawDegree[last_path_index]);
+        size_t last_path_index = std::distance(distances.begin(), min_it);
+        return std::to_string(std::get<0>(pathGoalsYawDegree[last_path_index]));
     }
+
     
-    int calculateClosestNodeIdOriginal(
-        const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegreeOriginal,
-        double position_x, double position_y)
-    {
-        if (pathGoalsYawDegreeOriginal.empty()) {
-            throw std::runtime_error("pathGoalsYawDegreeOriginal is empty");
-        }
-
-        std::vector<double> nodes_x_original;
-        std::vector<double> nodes_y_original;
-
-        for (const auto& node : pathGoalsYawDegreeOriginal) {
-            nodes_x_original.push_back(std::get<1>(node));
-            nodes_y_original.push_back(std::get<2>(node));
-        }
-
-        std::vector<double> distances_original;
-        for (size_t i = 0; i < nodes_x_original.size(); ++i) {
-            double distance_original = std::sqrt(std::pow(nodes_x_original[i] - position_x, 2) + std::pow(nodes_y_original[i] - position_y, 2));
-            distances_original.push_back(distance_original);
-        }
-
-        auto min_it_original = std::min_element(distances_original.begin(), distances_original.end());
-        size_t index_original = std::distance(distances_original.begin(), min_it_original);
-        return std::get<0>(pathGoalsYawDegreeOriginal[index_original]);
-    }
-
-
-
     void shiftTimestep(MpcNode& node) {
         // Initialize state_init with the current position and orientation
         node.mpc_setting_outputs_.state_init = DM(std::vector<double>{
