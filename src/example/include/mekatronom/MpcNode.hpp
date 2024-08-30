@@ -93,6 +93,10 @@ public:
     std::vector<std::string> parking_spot_is_full;
     std::string source_node{"263"};
     std::string target_node{"244"};
+    std::vector<std::string> dont_check_obstacles_this_nodes{"228","229","230","231","232","233","234","235","236","237","238","239","240"};
+    std::vector<std::string> excluded_nodes = {"273"};
+    std::vector<std::string> obstacles_array = {" "};
+    std::vector<std::string> parkings_are_available{" " };
   } Settings;
   Settings initial_settings_;
 
@@ -130,8 +134,6 @@ public:
   std::vector<std::tuple<std::string, double, double>> nodes_data_;
   std::vector<std::tuple<std::string, std::string, bool>> edges_data_;
   std::vector<std::tuple<int, int, bool>> edges_data_true_ilkverisyon_;
-  std::vector<std::string> parking_nodes_id_;
-  std::vector<std::string> obs_dontuse_ = {"273"};
   std::string car_behaviour_state_ = "keep_lane";
 
   std::vector<int> center_x_, center_y_;
@@ -142,6 +144,7 @@ public:
   std::vector<std::string> expath_;
   std::vector<std::string> shortest_path_;
   
+  int checking_counter_{0};
   bool pathGoalsYawDegreecalled_{false};
   
   std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
@@ -225,8 +228,8 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<Args...>& t) {
     return os;
 }
 
-// #include "mekatronom/utilities/mpc_start_setting.h"
 #include "mekatronom/utilities/djikstra.h"
 #include "mekatronom/utilities/mpc_running.h"
 #include "mekatronom/utilities/mpc_start_setting.h"
+#include "mekatronom/utilities/traffic_sign_manager.h"
 
