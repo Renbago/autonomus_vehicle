@@ -105,9 +105,9 @@ void MpcNode::get_parameters()
                 ROS_INFO("GraphML file path: %s", graphml_file_path_.c_str());
                 Djikstra djikstra(graphml_file_path_,source_node_,target_node_, *this);
                 // Debug the pathGoalsYawDegreeCopy_
-                if (!pathGoalsYawDegree_.empty()) {
+                if (!djikstra_outputs_.pathGoalsYawDegree.empty()) {
                     std::cout << "Path Goals Yaw Degree Copy:" << std::endl;
-                    for (const auto& [id, x, y, angle] : pathGoalsYawDegree_) {
+                    for (const auto& [id, x, y, angle] : djikstra_outputs_.pathGoalsYawDegree) {
                         std::cout << "Node ID: " << id << ", X: " << x << ", Y: " << y << ", Angle: " << angle << std::endl;
                     }
                 } else {
@@ -127,75 +127,13 @@ void MpcNode::get_parameters()
     }
 }
 
-// void MpcNode::process_and_publish_data()
-// {
-//     ROS_INFO_ONCE("Processing and publishing data called");
-//     pugi::xml_document doc;    
-//     pugi::xml_parse_result result = doc.load_file(graphml_file_path_.c_str());
-
-//     if (!result)
-//     {
-//         std::cerr << "XML [" << graphml_file_path_ << "] parsed with errors\n";
-//         return;
-//     }
-    
-//     pugi::xml_node root = doc.document_element();
-
-//     auto nodes_data = extract_nodes_data(root.child("graph"));
-//     auto edges_data_pair = extract_edges_data(root.child("graph"));
-//     auto& edges_data = edges_data_pair.first; // Use .first to access the first vector
-//     auto& edges_data_true = edges_data_pair.second; // Use .second to access the second vector
-
-//     std::vector<std::pair<std::string, std::string>> SourceTargetNodes;
-//     std::map<std::string, std::pair<double, double>> obs_dict; // Maps node IDs to coordinates (x, y)
-//     std::vector<std::tuple<std::string, double, double>> path; // To store the resulting path
-
-//     for (const auto& node : nodes_data) {
-//         std::string node_id = std::get<0>(node); // Extract the node ID
-//         double x = std::get<1>(node); // Extract the x coordinate
-//         double y = std::get<2>(node); // Extract the y coordinate
-//         obs_dict[node_id] = std::make_pair(x, y); // Insert into obs_dict
-//     }
-
-//     // Iterate over the edges_data_true vector
-//     for (const auto& edge : edges_data_true) {
-//         // Check if the third element of the tuple (the bool) is true
-//         if (std::get<2>(edge)) {
-//             // Directly use the string IDs without converting to int
-//             std::pair<std::string, std::string> newPair = std::make_pair(std::get<0>(edge), std::get<1>(edge));
-//             SourceTargetNodes.emplace_back(newPair);
-//         }
-//     }
-
-//     for (const auto& nodePair : SourceTargetNodes) {
-//         const auto& target_id = nodePair.second;
-
-//         // Check if target_id exists in obs_dict
-//         auto it = obs_dict.find(target_id);
-//         if (it != obs_dict.end()) {
-//             // If found, extract coordinates from the map
-//             const auto& coords = it->second; // coords is a pair<double, double>
-//             path.emplace_back(target_id, coords.first, coords.second);
-//         }
-//     }
-
-//     for (const auto& item : path) {
-        
-//         std::string node_id = std::get<0>(item); // Target ID
-//         double x_coord = std::get<1>(item); // X koordinatı
-//         double y_coord = std::get<2>(item); // Y koordinatı
-
-//     }
-
-// }
 
 void MpcNode::imageCb(const sensor_msgs::Image::ConstPtr& msg)
 {
   try {
       cv_bridge::CvImagePtr cv_ptr;
       cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8);
-      cv::imshow("Image window", cv_ptr->image);
-      cv::waitKey(30); 
+
   } catch (cv_bridge::Exception& e) {
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;

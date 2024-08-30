@@ -28,7 +28,6 @@
 
 #pragma once
 
-#include "ros/ros.h"
 #include "mekatronom/MpcNode.hpp"
 
 // enable this for verbose debug information
@@ -63,10 +62,10 @@ public:
 
         for (const auto& node : mpc_node.nodes_data_ ) {
             const auto& node_id = std::get<0>(node);
-            if (std::find(mpc_node.parking_nodes_id_.begin(), mpc_node.parking_nodes_id_.end(), node_id) != mpc_node.parking_nodes_id_.end()) {
+            if (std::find(mpc_node.initial_settings_.parking_nodes_id.begin(), mpc_node.initial_settings_.parking_nodes_id.end(), node_id) != mpc_node.initial_settings_.parking_nodes_id.end()) {
                 double x = std::get<1>(node);
                 double y = std::get<2>(node);
-                mpc_node.obstacle_node_positions_[node_id] = std::make_pair(x, y);
+                mpc_node.djikstra_outputs_.obstacle_node_positions[node_id] = std::make_pair(x, y);
             }
         }
 
@@ -74,7 +73,7 @@ public:
         
         auto flag_solla = false;
         for (const auto& edge : mpc_node.edges_data_) {
-            for (const auto& obs : mpc_node.obs_dontuse_) {
+            for (const auto& obs : mpc_node.initial_settings_.excluded_nodes) {
                 if (std::get<2>(edge)) {
                     flag_solla = true;
                     break;
@@ -123,7 +122,7 @@ public:
         }
         std::cout << std::endl;
 #endif
-        mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.obs_dontuse_, mpc_node);
+        mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.initial_settings_.excluded_nodes, mpc_node);
         mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
 
         auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
@@ -137,20 +136,20 @@ public:
 
         for (const auto& edge : stlist) {
             if (std::get<2>(edge)) {
-                mpc_node.SourceTargetNodes_.emplace_back(std::get<0>(edge), std::get<1>(edge));
+                mpc_node.djikstra_outputs_.SourceTargetNodes.emplace_back(std::get<0>(edge), std::get<1>(edge));
             }
         }
 
         for (const auto& edge : mpc_node.pathOriginal_) {
             if (std::get<2>(edge)) {
-                mpc_node.SourceTargetNodesOriginal_.emplace_back(std::get<0>(edge), std::get<1>(edge));
+                mpc_node.djikstra_outputs_.SourceTargetNodesOriginal.emplace_back(std::get<0>(edge), std::get<1>(edge));
             }
         }
         
         std::vector<std::tuple<int, double, double>> path;
         std::vector<std::tuple<int, double, double>> path_original;
 
-        for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodesOriginal_) {
+        for (const auto& [source_id, target_id] : mpc_node.djikstra_outputs_.SourceTargetNodesOriginal) {
             if (mpc_node.new_node_data_.find(source_id) != mpc_node.new_node_data_.end()) {
                 const auto& source_coords = mpc_node.new_node_data_.at(source_id);
                 path_original.emplace_back(std::stoi(source_id), source_coords.first, source_coords.second); 
@@ -161,7 +160,7 @@ public:
             }
         }
 
-        for (const auto& [source_id, target_id] : mpc_node.SourceTargetNodes_) {
+        for (const auto& [source_id, target_id] : mpc_node.djikstra_outputs_.SourceTargetNodes) {
             try {
                 if (mpc_node.new_node_data_.find(target_id) != mpc_node.new_node_data_.end()) {
                     const auto& coords = mpc_node.new_node_data_.at(target_id);
@@ -211,11 +210,11 @@ public:
         }
 
         for (size_t i = 0; i < path.size(); ++i) {
-            mpc_node.pathGoalsYawDegree_.emplace_back(std::get<0>(path[i]), std::get<1>(path[i]), std::get<2>(path[i]), angles[i]);
+            mpc_node.djikstra_outputs_.pathGoalsYawDegree.emplace_back(std::get<0>(path[i]), std::get<1>(path[i]), std::get<2>(path[i]), angles[i]);
         }
 
         for (size_t i = 0; i < path_original.size(); ++i) {
-            mpc_node.pathGoalsYawDegreeOriginal_.emplace_back(std::get<0>(path_original[i]), std::get<1>(path_original[i]), std::get<2>(path_original[i]), anglesOriginal[i]);
+            mpc_node.djikstra_outputs_.pathGoalsYawDegreeOriginal.emplace_back(std::get<0>(path_original[i]), std::get<1>(path_original[i]), std::get<2>(path_original[i]), anglesOriginal[i]);
         }
 
 #ifdef DEBUG
@@ -236,12 +235,12 @@ public:
         }
 
         std::cout << "\n\n\nOutputs of pathGoalsYawDegree_:" << std::endl;       
-        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegree_) {
+        for (const auto& [id, x, y, angle] : mpc_node.djikstra_outputs_.pathGoalsYawDegree) {
             std::cout << "Node ID1: " << id << ", X1: " << x << ", Y1: " << y << ", Angle1: " << angle << std::endl;
         }
 
         std::cout << "\n\n\nOutputs of pathGoalsYawDegreeOriginal_:" << std::endl;
-        for (const auto& [id, x, y, angle] : mpc_node.pathGoalsYawDegreeOriginal_) {
+        for (const auto& [id, x, y, angle] : mpc_node.djikstra_outputs_.pathGoalsYawDegreeOriginal) {
             std::cout << "Node ID2: " << id << ", X2: " << x << ", Y2: " << y << ", Angle2: " << angle << std::endl;
         }        
 
@@ -250,8 +249,8 @@ public:
         std::cout << "\n\n\nPasted time for DJikstra calculation:" << elapsed_timex << "seconds" << std::endl;
 #endif
         if (!mpc_node.pathGoalsYawDegreecalled_) {
-            mpc_node.pathGoalsYawDegreeCopy_ = mpc_node.pathGoalsYawDegreeOriginal_;
-            mpc_node.SourceTargetNodesCopy_ = mpc_node.SourceTargetNodesOriginal_;
+            mpc_node.djikstra_outputs_.pathGoalsYawDegreeCopy = mpc_node.djikstra_outputs_.pathGoalsYawDegreeOriginal;
+            mpc_node.djikstra_outputs_.SourceTargetNodesCopy = mpc_node.djikstra_outputs_.SourceTargetNodesOriginal;
             mpc_node.pathGoalsYawDegreecalled_ = true;
         }
 
