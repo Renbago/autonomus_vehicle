@@ -62,7 +62,7 @@ public:
 
         for (const auto& node : mpc_node.nodes_data_ ) {
             const auto& node_id = std::get<0>(node);
-            if (std::find(mpc_node.parking_nodes_id_.begin(), mpc_node.parking_nodes_id_.end(), node_id) != mpc_node.parking_nodes_id_.end()) {
+            if (std::find(mpc_node.initial_settings_.parking_nodes_id.begin(), mpc_node.initial_settings_.parking_nodes_id.end(), node_id) != mpc_node.initial_settings_.parking_nodes_id.end()) {
                 double x = std::get<1>(node);
                 double y = std::get<2>(node);
                 mpc_node.djikstra_outputs_.obstacle_node_positions[node_id] = std::make_pair(x, y);
@@ -73,7 +73,7 @@ public:
         
         auto flag_solla = false;
         for (const auto& edge : mpc_node.edges_data_) {
-            for (const auto& obs : mpc_node.obs_dontuse_) {
+            for (const auto& obs : mpc_node.initial_settings_.excluded_nodes) {
                 if (std::get<2>(edge)) {
                     flag_solla = true;
                     break;
@@ -122,7 +122,7 @@ public:
         }
         std::cout << std::endl;
 #endif
-        mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.obs_dontuse_, mpc_node);
+        mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.initial_settings_.excluded_nodes, mpc_node);
         mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
 
         auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
