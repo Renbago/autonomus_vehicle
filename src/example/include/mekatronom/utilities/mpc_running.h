@@ -183,17 +183,14 @@ public:
         std::string current_id_for_obstacles = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeCopy, 
                                                                     node.localisation_data_.x, node.localisation_data_.y);
         for (int i = 1; i <= 5; ++i) {
-            auto matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, current_id_for_obstacles);
-            auto matching_entry = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, current_id_for_obstacles);
+            std::vector<std::pair<std::string, std::string>> matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, current_id_for_obstacles);
+            std::tuple<int, double, double, double> matching_entry = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, current_id_for_obstacles);
 
             if (!matching_pairs_signs.empty()) {
                 std::string next_id_signs = matching_pairs_signs[0].second;
 
-                auto matching_entry_second = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, next_id_signs);
-                auto third_matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, next_id_signs);
-                if (!third_matching_pairs_signs.empty()) {
-                    auto matching_entry_third = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, third_matching_pairs_signs[0].second);   
-                }
+                std::tuple<int, double, double, double>  matching_entry_second = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, next_id_signs);
+
                 sign_looking_band.push_back(current_id_for_obstacles);
                 current_id_for_obstacles = next_id_signs;
 
@@ -204,14 +201,20 @@ public:
                 double x_thereshold = 0.1;
                 double y_thereshold = 0.1;
 
-                findingObstacleNodes(node, closest_node_id_original);
+                findingObstacleNodes(node, closest_node_id_original, matching_entry, matching_entry_second, target_position, x_thereshold, y_thereshold);
             }
         }
     }
 
-    void findingObstacleNodes(MpcNode& node, const std::string& closest_node_id_original) {
+    void findingObstacleNodes(MpcNode& node, const std::string& closest_node_id_original, 
+                            const std::tuple<int, double, double, double>& matching_entry, 
+                            const std::tuple<int, double, double, double>& matching_entry_second, 
+                            const std::array<double, 2>& target_position, 
+                            double x_thereshold, double y_thereshold) 
+    {
         for (size_t i = 0; i < node.center_x_.size(); ++i) {
-            std::vector<double> obstacle_position = {node.center_x_[i], node.center_y_[i]};
+            Eigen::Vector2d obstacleVec(node.center_x_[i], node.center_y_[i]);
+            Eigen::Vector2d targetVec(target_position[0], target_position[1]);
 
             for (const auto& [node_id, coordinates] : node.djikstra_outputs_.obstacle_node_positions) {
                 double x = coordinates.first;
@@ -223,7 +226,7 @@ public:
 
                     node.initial_settings_.parking_spot_is_full.push_back(node_id);
                     node.initial_settings_.parking_nodes_id.erase(std::remove(node.initial_settings_.parking_nodes_id.begin(), 
-                                                                            node.initial_settings_.parking_nodes_id.end(), node_id), 
+                                                                                node.initial_settings_.parking_nodes_id.end(), node_id), 
                                                                 node.initial_settings_.parking_nodes_id.end());
                 }
             }
@@ -235,9 +238,82 @@ public:
                 node.initial_settings_.target_node = node.initial_settings_.parking_nodes_id[0];
                 Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node);
             }
+
+            // Calculate distance to the target position
+            double distance = (obstacleVec - targetVec).norm();
+
+            // Use std::get<> to access tuple elements
+            double x1 = std::get<1>(matching_entry);
+            double y1 = std::get<2>(matching_entry);
+            double x2 = std::get<1>(matching_entry_second);
+            double y2 = std::get<2>(matching_entry_second);
+
+            // Check if within thresholds
+            bool is_within_x_threshold = std::min(x1, x2) - x_thereshold <= node.center_x_[i] &&
+                                        node.center_x_[i] <= std::max(x1, x2) + x_thereshold;
+            bool is_within_y_threshold = std::min(y1, y2) - y_thereshold <= node.center_y_[i] &&
+                                        node.center_y_[i] <= std::max(y1, y2) + y_thereshold;
+
+            int entry_id = std::get<0>(matching_entry);
+            std::string entry_id_str = std::to_string(entry_id);
+
+            checkingObstacleProximity(node, distance, is_within_x_threshold, is_within_y_threshold, entry_id_str, matching_entry, matching_entry_second, closest_node_id_original);
+            updateAvailableParkingSpots(node);
+            IsObstacleStillThere(node, obstacleVec);
+
         }
     }
+    void checkingObstacleProximity(MpcNode& node, double distance, bool is_within_x_threshold, bool is_within_y_threshold, const std::string& entry_id_str, 
+                                    const std::tuple<int, double, double, double>& matching_entry, 
+                                    const std::tuple<int, double, double, double>& matching_entry_second, 
+                                    const std::string& closest_node_id_original) 
+    {
+        if ((distance < 0.15 || (is_within_x_threshold && is_within_y_threshold)) && 
+            (std::find(node.initial_settings_.dont_check_obstacles_this_nodes.begin(), 
+                        node.initial_settings_.dont_check_obstacles_this_nodes.end(), 
+                        entry_id_str) == node.initial_settings_.dont_check_obstacles_this_nodes.end())) 
+        {
+            std::cout << "Obstacle is close or within thresholds" << std::endl;
 
+            std::vector<std::string> past_excluded_nodes = node.initial_settings_.excluded_nodes;
+
+            // Convert tuple entries to strings
+            std::string matching_entry_second_id_str = std::to_string(std::get<0>(matching_entry_second));
+
+            // Check and update the obstacles array
+            if (std::find(node.initial_settings_.obstacles_array.begin(),
+                        node.initial_settings_.obstacles_array.end(), entry_id_str) == node.initial_settings_.obstacles_array.end()) 
+            {
+                node.initial_settings_.obstacles_array.push_back(entry_id_str);
+            }
+
+            // Check if the second matching entry should be added to obstacles array
+            if (std::find(node.initial_settings_.excluded_nodes.begin(),
+                        node.initial_settings_.excluded_nodes.end(), matching_entry_second_id_str) == node.initial_settings_.excluded_nodes.end()) 
+            {
+                node.initial_settings_.obstacles_array.push_back(matching_entry_second_id_str);
+            }
+
+            // Add obstacles to the excluded nodes if not already present
+            for (const auto& obstacle_id : node.initial_settings_.obstacles_array) {
+                // No need to convert obstacle_id if it's already a std::string
+                if (std::find(node.initial_settings_.excluded_nodes.begin(),
+                            node.initial_settings_.excluded_nodes.end(), obstacle_id) == node.initial_settings_.excluded_nodes.end()) 
+                {
+                    node.initial_settings_.excluded_nodes.push_back(obstacle_id);
+                }
+            }
+
+            // Check if excluded nodes have changed and update if necessary
+            if (node.initial_settings_.excluded_nodes != past_excluded_nodes) {
+                Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node); 
+            }
+            else {
+                std::cout << "Found obstacle is already in the excluded nodes list" << std::endl;
+            }
+
+        }
+    }
 
     std::vector<std::pair<std::string, std::string>> findMatchingPairs(const std::vector<std::pair<std::string, std::string>>& sourceTargetNodes, const std::string& current_id) {
         std::vector<std::pair<std::string, std::string>> matching_pairs;
@@ -285,7 +361,53 @@ public:
         return std::to_string(std::get<0>(pathGoalsYawDegree[last_path_index]));
     }
 
-    
+    void updateAvailableParkingSpots(MpcNode& node) {
+        std::set_difference(node.initial_settings_.parking_nodes_id.begin(), node.initial_settings_.parking_nodes_id.end(),
+                            node.initial_settings_.parking_spot_is_full.begin(), node.initial_settings_.parking_spot_is_full.end(),
+                            std::back_inserter(node.initial_settings_.parkings_are_available));
+    }
+
+    void IsObstacleStillThere(MpcNode& node, const Eigen::Vector2d& obstacle_position) {
+        for (const auto& obstacle_id : node.initial_settings_.obstacles_array) {
+            auto matching_entry_obstacle_first = std::find_if(node.djikstra_outputs_.pathGoalsYawDegreeCopy.begin(), 
+                                                            node.djikstra_outputs_.pathGoalsYawDegreeCopy.end(), 
+                                                            [&obstacle_id](const std::tuple<int, double, double, double>& entry) {
+                                                                return std::to_string(std::get<0>(entry)) == obstacle_id;
+                                                            });
+            auto matching_entry_id_second =std::find_if(node.djikstra_outputs_.SourceTargetNodesCopy.begin(), 
+                                                        node.djikstra_outputs_.SourceTargetNodesCopy.end(), 
+                                                        [&obstacle_id](const std::pair<std::string, std::string>& pair) {
+                                                            return pair.first == obstacle_id;
+                                                        });
+
+            auto matching_entry_obstacle_second = std::find_if(node.djikstra_outputs_.pathGoalsYawDegreeCopy.begin(), 
+                                                            node.djikstra_outputs_.pathGoalsYawDegreeCopy.end(), 
+                                                            [&matching_entry_id_second](const std::tuple<int, double, double, double>& entry) {
+                                                                return std::to_string(std::get<0>(entry)) == matching_entry_id_second->second;
+                                                            });
+
+            double x_thereshold = 0.15;
+            double y_thereshold = 0.15;
+
+            Eigen::Vector2d target_position_obstacle_first(std::get<1>(*matching_entry_obstacle_first), std::get<2>(*matching_entry_obstacle_first));               
+            Eigen::Vector2d target_position_obstacle_second(std::get<1>(*matching_entry_obstacle_second), std::get<2>(*matching_entry_obstacle_second));
+
+            bool is_within_x_threshold = std::min(target_position_obstacle_first[0], target_position_obstacle_second[0]) - x_thereshold <= node.center_x_[0] &&
+                                        node.center_x_[0] <= std::max(target_position_obstacle_first[0], target_position_obstacle_second[0]) + x_thereshold;
+                                        
+            bool is_within_y_threshold = std::min(target_position_obstacle_first[1], target_position_obstacle_second[1]) - y_thereshold <= node.center_y_[0] &&
+                                        node.center_y_[0] <= std::max(target_position_obstacle_first[1], target_position_obstacle_second[1]) + y_thereshold;
+
+            double norm_first = (target_position_obstacle_first - obstacle_position).norm();
+            double norm_second = (target_position_obstacle_second - obstacle_position).norm();
+
+            if (norm_first < 0.16 || norm_second < 0.16 || (is_within_x_threshold && is_within_y_threshold)) {
+                node.car_behaviour_state_ = "waiting the obstacle move away";
+                node.checking_counter_ = 0;
+            }
+        }
+    }
+
     void shiftTimestep(MpcNode& node) {
         // Initialize state_init with the current position and orientation
         node.mpc_setting_outputs_.state_init = DM(std::vector<double>{
