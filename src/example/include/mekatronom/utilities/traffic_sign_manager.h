@@ -35,6 +35,10 @@ public:
     TrafficSignManager(MpcNode& node)
     {
         std::cout << "TrafficSignManager constructor" << std::endl;
+
+        // if ((node.car_behaviour_state_ == "keep_lane") && (node.initial_settings_.obstacles_array.size() > 0) && 
+            //  (node.checking_counter_ > 50))
+         
     }
 };
 

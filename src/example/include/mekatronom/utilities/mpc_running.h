@@ -128,7 +128,7 @@ public:
             // std::cout << "node.mpc_setting_outputs_.X0"<< node.mpc_setting_outputs_.X0 << std::endl;
 
             carControlExecution(node);
-
+            updateAndProcessNearestWaypoint(node);
             
         } catch (const std::exception& e) {
             std::cerr << "Solver error: " << e.what() << std::endl;
@@ -150,6 +150,12 @@ public:
             carControlPublisher(node);
         }
 
+        std::cout<< "node.mpc_setting_outputs_.steerAngle" << node.mpc_setting_outputs_.steerAngle << std::endl;
+        std::cout<< "node.mpc_setting_outputs_.steerLateral" << node.mpc_setting_outputs_.steerLateral << std::endl;
+
+    }
+
+    void updateAndProcessNearestWaypoint(MpcNode& node) {
         // Assuming state_target and state_init are DM (CasADi Dense Matrix) objects
         DM state_target_slice = node.mpc_setting_outputs_.state_target(Slice(0, 2));
         DM state_init_slice = node.mpc_setting_outputs_.state_init(Slice(0, 2));
@@ -169,13 +175,16 @@ public:
 
             std::string closest_node_id_original = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeOriginal, 
                                                                     node.localisation_data_.x, node.localisation_data_.y);
+            
+            updatePassThrough(node, closest_node_id_original);
             processObstacles(node,closest_node_id_original);
-
+            
         }
+    }
 
-        std::cout<< "node.mpc_setting_outputs_.steerAngle" << node.mpc_setting_outputs_.steerAngle << std::endl;
-        std::cout<< "node.mpc_setting_outputs_.steerLateral" << node.mpc_setting_outputs_.steerLateral << std::endl;
-
+    void updatePassThrough(MpcNode& node, std::string closest_node_id_original) {
+        std::string current_data = closest_node_id_original;
+        // if ((node.djikstra_outputs_.node_dict.count(current_data) > 0) && (node.djikstra_outputs_.node_dict[current_data].count("pass_through") ) 
     }
 
     void processObstacles(MpcNode& node, const std::string& closest_node_id_original) {
@@ -260,7 +269,7 @@ public:
             checkingObstacleProximity(node, distance, is_within_x_threshold, is_within_y_threshold, entry_id_str, matching_entry, matching_entry_second, closest_node_id_original);
             updateAvailableParkingSpots(node);
             IsObstacleStillThere(node, obstacleVec);
-
+            TrafficSignManager TrafficSignManager(node);
         }
     }
     void checkingObstacleProximity(MpcNode& node, double distance, bool is_within_x_threshold, bool is_within_y_threshold, const std::string& entry_id_str, 
@@ -307,6 +316,7 @@ public:
             // Check if excluded nodes have changed and update if necessary
             if (node.initial_settings_.excluded_nodes != past_excluded_nodes) {
                 Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node); 
+                node.last_update_time_.obstacles_checking = ros::Time::now().toSec();
             }
             else {
                 std::cout << "Found obstacle is already in the excluded nodes list" << std::endl;
@@ -404,6 +414,7 @@ public:
             if (norm_first < 0.16 || norm_second < 0.16 || (is_within_x_threshold && is_within_y_threshold)) {
                 node.car_behaviour_state_ = "waiting the obstacle move away";
                 node.checking_counter_ = 0;
+                node.last_update_time_.obstacles_checking = ros::Time::now().toSec();
             }
         }
     }
