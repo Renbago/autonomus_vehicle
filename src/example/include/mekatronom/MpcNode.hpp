@@ -55,13 +55,6 @@ public:
   NodeInfo node_info_;
 
   typedef struct {
-    std::string node_id;
-    std::string node_name;
-    bool pass_through;
-  } EdgeInfo;
-  EdgeInfo edge_info_;
-
-  typedef struct {
     double x;
     double y;
     double z;
@@ -70,6 +63,11 @@ public:
     double yaw;
   } Pose;
   Pose localisation_data_;
+
+  typedef struct {
+    int obstacles_checking;
+  } Timers;
+  Timers last_update_time_;
 
   typedef struct {
     double Q_x;
@@ -108,6 +106,7 @@ public:
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal;
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy;
     std::map<std::string, std::pair<double, double>> obstacle_node_positions;
+    bool pass_through{false};
   } djikstra_outputs;
   djikstra_outputs djikstra_outputs_; 
 
@@ -147,14 +146,6 @@ public:
   int checking_counter_{0};
   bool pathGoalsYawDegreecalled_{false};
   
-  std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
-  std::vector<std::tuple<int, int, bool>> stformat(const std::vector<int>& path_short_);
-  std::pair<std::map<int, std::pair<double, double>>, std::vector<std::tuple<int, int, bool>>> beizer(const std::vector<int>& path_short_, std::map<int, std::pair<double, double>>& noded_);
-  std::vector<std::string> dijkstra(const std::string& source, const std::string& target,
-                                    std::map<std::string, NodeInfo>& nodedictt,
-                                    std::map<std::string, std::vector<std::pair<std::string, double>>>& edgedictt,
-                                    const std::vector<std::string>& obs_dontuse,
-                                    MpcNode& mpc_node);
 
   std::string graphml_file_path_;
   std::string scenerio_name_;
@@ -229,7 +220,7 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<Args...>& t) {
 }
 
 #include "mekatronom/utilities/djikstra.h"
+#include "mekatronom/utilities/traffic_sign_manager.h"
 #include "mekatronom/utilities/mpc_running.h"
 #include "mekatronom/utilities/mpc_start_setting.h"
-#include "mekatronom/utilities/traffic_sign_manager.h"
 
