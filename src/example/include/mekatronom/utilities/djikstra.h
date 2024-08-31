@@ -71,19 +71,19 @@ public:
 
         mpc_node.edges_data_ = extract_edges_data(graph);
         
-        auto flag_solla = false;
+        mpc_node.djikstra_outputs_.pass_through = false;
         for (const auto& edge : mpc_node.edges_data_) {
             for (const auto& obs : mpc_node.initial_settings_.excluded_nodes) {
                 if (std::get<2>(edge)) {
-                    flag_solla = true;
+                    mpc_node.djikstra_outputs_.pass_through = true;
                     break;
                 }
             }
-            if (flag_solla) break;
+            if (mpc_node.djikstra_outputs_.pass_through) break;
         }
 
-        if (!flag_solla) {
-            flag_solla = false;
+        if (!mpc_node.djikstra_outputs_.pass_through) {
+            mpc_node.djikstra_outputs_.pass_through = false;
         }
 
 #ifdef DEBUG
@@ -100,7 +100,45 @@ public:
         std::cout << std::endl;
 #endif
         ROS_INFO_ONCE("Starting to extract_graph");
-        auto [noded, edged] = extract_graph(mpc_node.nodes_data_, mpc_node.edges_data_);
+        std::map<std::string, MpcNode::NodeInfo> noded;
+        std::map<std::string, std::vector<std::pair<std::string, double>>> edged;
+        std::tie(noded, edged) = extract_graph(mpc_node.nodes_data_, mpc_node.edges_data_);
+        
+// #ifdef DEBUG
+//         std::cout << "\n\n\nnoded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
+
+//         std::cout << "\n\n\nOutputs of noded:" << std::endl;
+//         for (const auto& [key, value] : noded) {
+//             std::cout << key << ": ("
+//                     << "distance: " << value.distance << ", "
+//                     << "pass_through: " << std::boolalpha << value.pass_through << ", "
+//                     << "x: " << value.x << ", "
+//                     << "y: " << value.y << ", "
+//                     << "atalist: [";
+
+//             for (size_t i = 0; i < value.atalist.size(); ++i) {
+//                 if (i > 0) std::cout << ", ";
+//                 std::cout << value.atalist[i];
+//             }
+//             std::cout << "])" << std::endl;
+//         }
+
+//         std::cout << "\n\n\nOutputs of edged:" << std::endl;
+//         for (const auto& [key, value] : edged) {
+//             std::cout << key << ": ";
+//             for (const auto& v : value) {
+//                 std::cout << "(" << v.first << ", " << v.second << ") ";
+//             }
+//             std::cout << " ";
+//         }
+//         std::cout << std::endl;
+
+// #endif
+        mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.initial_settings_.excluded_nodes, mpc_node);
+        mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
+
+        auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
+        mpc_node.new_node_data_ = new_node_data;
 
 #ifdef DEBUG
 
@@ -108,9 +146,19 @@ public:
 
         std::cout << "\n\n\nOutputs of noded:" << std::endl;
         for (const auto& [key, value] : noded) {
-            std::cout << key << ": (" << value.x << ", " << value.y << ") ";
+            std::cout << key << ": ("
+                    << "distance: " << value.distance << ", "
+                    << "pass_through: " << std::boolalpha << value.pass_through << ", "
+                    << "x: " << value.x << ", "
+                    << "y: " << value.y << ", "
+                    << "atalist: [";
+
+            for (size_t i = 0; i < value.atalist.size(); ++i) {
+                if (i > 0) std::cout << ", ";
+                std::cout << value.atalist[i];
+            }
+            std::cout << "])" << std::endl;
         }
-        std::cout << std::endl;
 
         std::cout << "\n\n\nOutputs of edged:" << std::endl;
         for (const auto& [key, value] : edged) {
@@ -121,14 +169,8 @@ public:
             std::cout << " ";
         }
         std::cout << std::endl;
-#endif
-        mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.initial_settings_.excluded_nodes, mpc_node);
-        mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
 
-        auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
-        mpc_node.new_node_data_ = new_node_data;
 
-#ifdef DEBUG
         std::cout << "\n\n\nNew node data:" << mpc_node.new_node_data_ << std::endl;
         std::cout << "\n\n\nShortest path:" << mpc_node.shortest_path_ << std::endl;
         std::cout << "\n\n\nPath original:" <<  mpc_node.pathOriginal_ << std::endl;
