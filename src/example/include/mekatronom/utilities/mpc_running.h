@@ -128,7 +128,9 @@ public:
             // std::cout << "node.mpc_setting_outputs_.X0"<< node.mpc_setting_outputs_.X0 << std::endl;
 
             carControlExecution(node);
-            updateAndProcessNearestWaypoint(node);
+            auto [closest_node_id, closest_node_id_original] = updateAndProcessNearestWaypoint(node);
+            std::vector<std::pair<std::string, std::string>>  matching_pairs = isTargetNodePresent(node, closest_node_id);
+            updateNextTargetNode(node, matching_pairs, closest_node_id, closest_node_id_original);
             
         } catch (const std::exception& e) {
             std::cerr << "Solver error: " << e.what() << std::endl;
@@ -136,8 +138,126 @@ public:
         }
     }
 
+    /*
+    * if there is no matching_pairs its probably last node. So we are accepting as that and giving always same node
+    * So if it solve currectly newer try new solutions.
+    * else we are updating the next target node. The purpose of the pi< yaw thing is while robot is moving always the next yaw need to be change.
+    * And because of we are using Ecluidian system while the limit of 360 to 0 there is no solution. For this we are always referencing one side 
+    */
+    void updateNextTargetNode (MpcNode& node, const std::vector<std::pair<std::string, std::string>>& matching_pairs,
+                                const std::string& closest_node_id, const std::string& closest_node_id_original) {
+        if (matching_pairs.empty()) 
+        {
+            DM dm_distance = DM::ones(1);
+            DM state_target_slice = node.mpc_setting_outputs_.state_target(Slice(0, 3));
+            DM state_init_slice = node.mpc_setting_outputs_.state_init(Slice(0, 3));
+            
+            double distance = static_cast<double>(norm_2(state_target_slice - state_init_slice)(0));
+            if (distance < 0.15) // its stable for my tuned parameters, will be check this later 
+            {
+                node.mpc_setting_outputs_.state_target = DM({node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
+            }  
+            node.last_update_time_.watchdogTimer = ros::Time::now().toSec();
+            node.distance_flag_ = false;
+        } 
+        else 
+        {   
+            double bandwith = M_PI / 2;
+
+            std::string next_id = matching_pairs[0].second;
+
+            auto matching_entry_opt = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegree, next_id);
+
+            
+            if (matching_entry_opt.has_value()) {
+                
+                auto matching_entry = matching_entry_opt.value();
+
+                std::cout << "\nMatching entry found for next node id: " << matching_entry << std::endl;
+
+                auto target_x = std::get<1>(matching_entry);
+                auto target_y = std::get<2>(matching_entry);
+                auto target_yaw = std::get<3>(matching_entry);
+
+                double dx = target_x - node.localisation_data_.x;   
+                double dy = target_y - node.localisation_data_.y;
+                double yaw = std::atan2(dy, dx);
+
+                if (yaw > M_PI) {
+                    yaw -= 2 * M_PI;
+                } else if (yaw < -M_PI) {
+                    yaw += 2 * M_PI;
+                }
+
+                if (node.localisation_data_.yaw > M_PI) {
+                    node.localisation_data_.yaw -= 2 * M_PI;
+                } else if (node.localisation_data_.yaw < -M_PI) {
+                    node.localisation_data_.yaw += 2 * M_PI;
+                }
+
+                if ((node.localisation_data_.yaw + bandwith > M_PI) && (yaw < -bandwith)) {
+                    double cars_value = M_PI - node.localisation_data_.yaw;
+                    double goal_value = M_PI - abs(yaw);
+                    yaw = cars_value + goal_value + node.localisation_data_.yaw;
+                } 
+                if ((node.localisation_data_.yaw - bandwith < -M_PI) && (yaw > bandwith)) {
+                    double goal_value = M_PI - yaw;
+                    yaw = -M_PI - goal_value;
+                }
+
+                std::cout << "Next Step ID: " << next_id << "X: " << target_x << "Y: " << target_y << "Yaw: " << yaw << std::endl;
+
+                node.last_update_time_.went_node = ros::Time::now().toSec();
+                    
+                updateStateTarget(node, next_id, target_x, target_y, yaw);
+
+                node.goal_id_ = matching_entry; 
+                if (node.car_behaviour_state_ == "keep_lane") 
+                {
+                    node.last_update_time_.watchdogTimer = ros::Time::now().toSec();
+                }
+            }
+            else {
+                node.distance_flag_ = false;
+                node.mpc_setting_outputs_.state_target = DM({node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
+                node.last_update_time_.watchdogTimer = ros::Time::now().toSec();
+                ROS_ERROR("Matching entry not found for next node id: %s", next_id.c_str());
+            }
+        }
+    }
+
+    /*
+    * If the next node is parking spot, the robot should go to the parking spot and stop.
+    * we are equaling the yaw to 0.0 because the robot should go straight to the parking spot. IN OUR CASE PARKING SPOT IS ALWAYS IN THE X AXIS
+    * Its dirty i know. But we saved the day with like this.
+    */
+    void updateStateTarget(MpcNode& node, const std::string& next_id, double target_x, double target_y, double yaw) {
+        if (std::find(node.initial_settings_.parking_nodes_id.begin(), 
+                      node.initial_settings_.parking_nodes_id.end(), next_id) != 
+            node.initial_settings_.parking_nodes_id.end()) {
+            node.mpc_setting_outputs_.state_target = DM({target_x, target_y, 0.0});
+            node.distance_flag_ = false;
+        } else {
+            node.mpc_setting_outputs_.state_target = DM({target_x, target_y, yaw});
+            std::cout << "\nNext node is not a parking spot." << std::endl;
+        }
+    }
+
+    std::vector<std::pair<std::string, std::string>> isTargetNodePresent(MpcNode& node, const std::string& closest_node_id) {
+        std::vector<std::pair<std::string, std::string>> matching_pairs;
+
+        for (const auto& p : node.djikstra_outputs_.SourceTargetNodes) {
+            if (p.first == closest_node_id) {
+                matching_pairs.push_back(p);
+            }
+        }
+
+        return matching_pairs;
+    }
+
     void carControlExecution(MpcNode& node) {
 
+        std::cout << "\nnode.car_behaviour_state_: " << node.car_behaviour_state_ << std::endl;
         if (node.car_behaviour_state_ == "keep_lane")
         {
             // Access the value at (0, 1) in the matrix and convert it to a double
@@ -155,36 +275,50 @@ public:
 
     }
 
-    void updateAndProcessNearestWaypoint(MpcNode& node) {
-        // Assuming state_target and state_init are DM (CasADi Dense Matrix) objects
+    std::tuple<std::string, std::string> updateAndProcessNearestWaypoint(MpcNode& node) {
+
+        std::string closest_node_id;
+        std::string closest_node_id_original;
+
+        DM dm_distance = DM::ones(1);
         DM state_target_slice = node.mpc_setting_outputs_.state_target(Slice(0, 2));
         DM state_init_slice = node.mpc_setting_outputs_.state_init(Slice(0, 2));
-
+        
         double distance = static_cast<double>(norm_2(state_target_slice - state_init_slice)(0));
-
         if (distance < node.initial_settings_.goal_checker) {
 
+            
+
             if(node.djikstra_outputs_.pathGoalsYawDegree.size() > 0) {
-                std::string closest_node_id = calculateClosestNodeId( node.djikstra_outputs_.pathGoalsYawDegree, 
+                closest_node_id = calculateClosestNodeId( node.djikstra_outputs_.pathGoalsYawDegree, 
                                                             node.localisation_data_.x, node.localisation_data_.y);
             }
             else {
-                std::string closest_node_id = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeCopy, 
+                closest_node_id = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeCopy, 
                                                                 node.localisation_data_.x, node.localisation_data_.y);
             }
 
-            std::string closest_node_id_original = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeOriginal, 
+            closest_node_id_original = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeOriginal, 
                                                                     node.localisation_data_.x, node.localisation_data_.y);
-            
+            node.closest_node_id_original_ = closest_node_id_original; // TODO: dirty will fix it later
+            node.closest_node_id_ = closest_node_id; // TODO: dirty will fix it later
+
             updatePassThrough(node, closest_node_id_original);
             processObstacles(node,closest_node_id_original);
             
         }
+        return {closest_node_id, closest_node_id_original};
     }
 
-    void updatePassThrough(MpcNode& node, std::string closest_node_id_original) {
+    void updatePassThrough(MpcNode& node, const std::string& closest_node_id_original) {
         std::string current_data = closest_node_id_original;
-        // if ((node.djikstra_outputs_.node_dict.count(current_data) > 0) && (node.djikstra_outputs_.node_dict[current_data].count("pass_through") ) 
+        auto& node_info = node.djikstra_outputs_.node_dict[current_data];
+        
+        if (node_info.pass_through) {
+            node.djikstra_outputs_.pass_through = true;
+        } else {
+            node.djikstra_outputs_.pass_through = false;
+        }
     }
 
     void processObstacles(MpcNode& node, const std::string& closest_node_id_original) {
@@ -193,12 +327,27 @@ public:
                                                                     node.localisation_data_.x, node.localisation_data_.y);
         for (int i = 1; i <= 5; ++i) {
             std::vector<std::pair<std::string, std::string>> matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, current_id_for_obstacles);
-            std::tuple<int, double, double, double> matching_entry = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, current_id_for_obstacles);
+            
+            std::tuple<int, double, double, double> matching_entry;
+            std::tuple<int, double, double, double> matching_entry_second;
+
+            auto matching_entry_opt = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, current_id_for_obstacles);
+
+            if (matching_entry_opt) {
+                matching_entry = matching_entry_opt.value();
+            } else {
+                ROS_ERROR("Matching entry not found for current node id: %s", current_id_for_obstacles.c_str());   
+            }
 
             if (!matching_pairs_signs.empty()) {
                 std::string next_id_signs = matching_pairs_signs[0].second;
-
-                std::tuple<int, double, double, double>  matching_entry_second = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, next_id_signs);
+                
+                auto matching_entry_second_opt = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, next_id_signs);
+                if (matching_entry_second_opt) {
+                    matching_entry_second = matching_entry_second_opt.value();
+                } else {
+                    ROS_ERROR("Matching entry not found for next node id: %s", next_id_signs.c_str());
+                }
 
                 sign_looking_band.push_back(current_id_for_obstacles);
                 current_id_for_obstacles = next_id_signs;
@@ -335,13 +484,16 @@ public:
         return matching_pairs;
     }
 
-    std::tuple<int, double, double, double> findMatchingEntry(const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree, const std::string& current_id) {
+    std::optional<std::tuple<int, double, double, double>> findMatchingEntry(
+        const std::vector<std::tuple<int, double, double, double>>& pathGoalsYawDegree,
+        const std::string& current_id) {
+
         for (const auto& entry : pathGoalsYawDegree) {
             if (std::to_string(std::get<0>(entry)) == current_id) {
-                return entry;
+                return entry; // Return the found tuple
             }
         }
-        throw std::runtime_error("Matching entry not found");
+        return std::nullopt; // Return std::nullopt when not found
     }
 
     std::string calculateClosestNodeId(
