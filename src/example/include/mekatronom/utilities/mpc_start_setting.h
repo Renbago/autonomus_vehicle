@@ -146,8 +146,8 @@ public:
 
             int goal_id = std::get<0>(matching_entry);
 
-            node.mpc_setting_outputs_.state_init = DM(std::vector<double>{node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
-            node.mpc_setting_outputs_.state_target = DM(std::vector<double>{target_x, target_y, yaw});
+            node.mpc_setting_outputs_.state_init = DM({node.localisation_data_.x, node.localisation_data_.y, node.localisation_data_.yaw});
+            node.mpc_setting_outputs_.state_target = DM({target_x, target_y, yaw});
 
             std::cout << "state_init: " << node.mpc_setting_outputs_.state_init << std::endl;
             std::cout << "state_target: " << node.mpc_setting_outputs_.state_target << std::endl;
@@ -220,22 +220,19 @@ public:
             auto k4 = node.mpc_setting_outputs_.f(std::vector<SX>{st + node.initial_settings_.step_horizon * k3.at(0), con});
 
             SX st_next_RK4 = st + (node.initial_settings_.step_horizon / 6) * (k1.at(0) + 2*k2.at(0) + 2*k3.at(0) + k4.at(0));
-            std::cout << "st_next: " << st_next << std::endl;
-            std::cout << "st_next_RK4: " << st_next_RK4 << std::endl;
-            std::cout << "test: " << std::endl;
+            // std::cout << "st_next: " << st_next << std::endl;
+            // std::cout << "st_next_RK4: " << st_next_RK4 << std::endl;
+            // std::cout << "test: " << std::endl;
             g = vertcat(g, st_next - st_next_RK4);
             // Verify that number of constraints matches expectations
-            std::cout << "Number of constraints in g: " << g.size1() << std::endl;
+            // std::cout << "Number of constraints in g: " << g.size1() << std::endl;
         }
 
-        std::cout << "SOLVER2" << std::endl;
-
-
         SX OPT_variables = vertcat(reshape(X, node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1), 1), reshape(U, node.mpc_setting_outputs_.n_controls * node.initial_settings_.N, 1));
-        std::cout << "OPT_variables: " << OPT_variables << std::endl;
-        std::cout << "cost_fn: " << cost_fn << std::endl;
-        std::cout << "g: " << g << std::endl;
-        std::cout << "P: " << P << std::endl;
+        // std::cout << "OPT_variables: " << OPT_variables << std::endl;
+        // std::cout << "cost_fn: " << cost_fn << std::endl;
+        // std::cout << "g: " << g << std::endl;
+        // std::cout << "P: " << P << std::endl;
         SXDict nlp_prob = {
             {"f", cost_fn},
             {"x", OPT_variables},
@@ -243,7 +240,7 @@ public:
             {"p", P}
         };
         
-        std::cout << "nlp_prob: " << nlp_prob << std::endl;
+        // std::cout << "nlp_prob: " << nlp_prob << std::endl;
         Dict opts = {
             {"ipopt.max_iter", 100},
             {"ipopt.print_level", 0},
@@ -252,7 +249,7 @@ public:
             {"print_time", 0},
         };
 
-        std::cout << "opts: " << opts << std::endl;
+        // std::cout << "opts: " << opts << std::endl;
 
         node.mpc_setting_outputs_.solver = nlpsol("solver", "ipopt", nlp_prob, opts);
 
@@ -265,7 +262,7 @@ public:
         DM lbg = DM::zeros(node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1), 1);
         DM ubg = DM::zeros(node.mpc_setting_outputs_.n_states*(node.initial_settings_.N+1), 1);
 
-        std::cout<< "node.mpc_setting_outputs_.solver: " << node.mpc_setting_outputs_.solver << std::endl;
+        // std::cout<< "node.mpc_setting_outputs_.solver: " << node.mpc_setting_outputs_.solver << std::endl;
 
         for (int i = 0; i < node.mpc_setting_outputs_.n_states * (node.initial_settings_.N + 1); i += node.mpc_setting_outputs_.n_states) {
             // Assigning lower bounds
@@ -306,8 +303,8 @@ public:
         node.mpc_setting_outputs_.cat_states = node.mpc_setting_outputs_.X0;
         node.mpc_setting_outputs_.cat_controls = DM::zeros(0,node.mpc_setting_outputs_.u0.columns());
         // Check number of constraints
-        std::cout << "Number of constraints in g: " << g.size1() << std::endl;
-        std::cout << "Expected number of constraints: " << lbg.size1() << std::endl;
+        // std::cout << "Number of constraints in g: " << g.size1() << std::endl;
+        // std::cout << "Expected number of constraints: " << lbg.size1() << std::endl;
 
     }
 };
