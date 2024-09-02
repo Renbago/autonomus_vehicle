@@ -137,6 +137,7 @@ public:
         mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.initial_settings_.excluded_nodes, mpc_node);
         mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
 
+        mpc_node.djikstra_outputs_.node_dict = noded;
         auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
         mpc_node.new_node_data_ = new_node_data;
 
