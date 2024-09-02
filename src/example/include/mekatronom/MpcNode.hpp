@@ -25,7 +25,7 @@
 #include <filesystem>
 #include <locale.h>  
 #include <nlohmann/json.hpp>
-// #include <mpc_start_setting2.h>
+// #inclzude <mpc_start_setting2.h>
 
 using namespace casadi;
 using json = nlohmann::json;
@@ -66,6 +66,8 @@ public:
 
   typedef struct {
     int obstacles_checking;
+    int watchdogTimer;
+    int went_node;
   } Timers;
   Timers last_update_time_;
 
@@ -107,6 +109,7 @@ public:
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy;
     std::map<std::string, std::pair<double, double>> obstacle_node_positions;
     bool pass_through{false};
+    std::map<std::string, MpcNode::NodeInfo> node_dict;
   } djikstra_outputs;
   djikstra_outputs djikstra_outputs_; 
 
@@ -142,10 +145,13 @@ public:
   std::map<std::string, std::pair<double, double>> obs_dict_;
   std::vector<std::string> expath_;
   std::vector<std::string> shortest_path_;
-  
+  std::tuple<int, double, double, double> goal_id_;
+
   int checking_counter_{0};
   bool pathGoalsYawDegreecalled_{false};
-  
+  bool distance_flag_{false};
+  std::string closest_node_id_original_;
+  std::string closest_node_id_;
 
   std::string graphml_file_path_;
   std::string scenerio_name_;
@@ -172,7 +178,7 @@ public:
 private:
   
   // Private Functions
-  void imageCb(const sensor_msgs::Image::ConstPtr& msg);
+  // void imageCb(const sensor_msgs::Image::ConstPtr& msg);
   void controlCb(const ros::TimerEvent&);
   void imuCb(const sensor_msgs::Imu::ConstPtr& msg);
   void localisationCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg); 
