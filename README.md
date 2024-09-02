@@ -57,10 +57,16 @@ This will open a new instance of Visual Studio Code that is connected to the fil
 # For running the project:
 at one terminal:
 ```roslaunch sim_pkg map_with_car.launch``` 
+
 the second terminal:
 ```rosrun example mpc_node```
-The mpc version has not been fully finish. and the python side has not been cleaned but for want to see the project instead of ```mpc_node```
-you can run ```rosrun example mpc.py```
+
+# IMPORTANT
+The all of the implementation's which i mentioned are currently work on [mpc.py](https://github.com/Renbago/autonomus_vehicle/blob/devel/src/example/src/mpc.py),
+but the all of the python codes has not been cleaned and a bit dirty code. But while preparing the competation I was not care of the clean writing.
+
+The ```mpc_node.cpp``` version has not been fully finished, currently we are able to follow waypoint list, ```mpc_node```
+you can run ```rosrun example mpc.py``` when launched ```map_with_car.launch``` also obstacle_detector will be executed.
 
 #
 
