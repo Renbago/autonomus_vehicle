@@ -36,9 +36,34 @@ public:
     {
         std::cout << "TrafficSignManager constructor" << std::endl;
 
-        // if ((node.car_behaviour_state_ == "keep_lane") && (node.initial_settings_.obstacles_array.size() > 0) && 
-            //  (node.checking_counter_ > 50))
-         
+        node.checking_counter_++;
+
+        if ((node.car_behaviour_state_ == "keep_lane") && 
+            (node.initial_settings_.obstacles_array.size() > 0) && 
+            (node.checking_counter_ > 50) &&
+            (node.djikstra_outputs_.pass_through == 0))
+            {
+                std::cout << "Obstacle moved out of the way clearing the data" << std::endl;
+                for (const auto& value : node.initial_settings_.obstacles_array) {
+                    auto obstacle_id = std::find(node.initial_settings_.excluded_nodes.begin(), node.initial_settings_.excluded_nodes.end(), value); 
+                    if (obstacle_id != node.initial_settings_.excluded_nodes.end()) {
+                        node.initial_settings_.excluded_nodes.erase(obstacle_id);
+                    }
+                }
+                node.initial_settings_.obstacles_array.clear();
+
+                Djikstra djikstra(node.graphml_file_path_, node.closest_node_id_original_, node.initial_settings_.target_node, node); 
+            }     
+
+        else
+        {
+            node.car_behaviour_state_ = "keep_lane";
+            ROS_INFO("The car behaviour state is ", node.car_behaviour_state_);
+        }
+
+        //  TODO: For now other sections of parking motorway endofmotorway settings will be disabled.  It does need yolo implementation.
+        //  TODO: Might be I can run it with directly python script. IDK yet.
+
     }
 };
 
