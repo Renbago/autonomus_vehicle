@@ -31,9 +31,9 @@
 
   <!-- <node name="tf_publisher" pkg="example" type="tfpublisher.py" output="screen"/> -->
 
-  <!-- <node name="launch_obstacle_detector" pkg="sim_pkg" type="launch_obstacle_detector.sh" output="screen"/> -->
+  <node name="launch_obstacle_detector" pkg="sim_pkg" type="launch_obstacle_detector.sh" output="screen"/>
   
-  <!-- <node name="rviz" pkg="sim_pkg" type="rviz.sh" output="screen"/> -->
+  <node name="rviz" pkg="sim_pkg" type="rviz.sh" output="screen"/>
   
   <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization">
     <rosparam command="load" file="$(find sim_pkg)/config/ekf_localization.yaml"/> 

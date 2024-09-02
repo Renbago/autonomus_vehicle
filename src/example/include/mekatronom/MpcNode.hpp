@@ -92,7 +92,7 @@ public:
     std::vector<std::string> parking_nodes_id{"900","901","902","903","904","910","911","912","913","914"};
     std::vector<std::string> parking_spot_is_full;
     std::string source_node{"263"};
-    std::string target_node{"244"};
+    std::string target_node{"900"};
     std::vector<std::string> dont_check_obstacles_this_nodes{"228","229","230","231","232","233","234","235","236","237","238","239","240"};
     std::vector<std::string> excluded_nodes = {"273"};
     std::vector<std::string> obstacles_array = {" "};

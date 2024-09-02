@@ -109,7 +109,7 @@ bool ObstacleExtractor::updateParams(std_srvs::Empty::Request &req, std_srvs::Em
     if (p_active_) {
       if (p_use_scan_){
         ROS_INFO_STREAM_ONCE("Received scan message");
-        scan_sub_ = nh_.subscribe("/zed2i/depth/scan", 10, &ObstacleExtractor::scanCallback, this);
+        scan_sub_ = nh_.subscribe("automobile/scan", 10, &ObstacleExtractor::scanCallback, this);
       }
       else if (p_use_pcl_)
         pcl_sub_ = nh_.subscribe("pcl", 10, &ObstacleExtractor::pclCallback, this);
