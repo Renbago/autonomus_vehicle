@@ -25,7 +25,7 @@
 #include <filesystem>
 #include <locale.h>  
 #include <nlohmann/json.hpp>
-// #inclzude <mpc_start_setting2.h>
+#include "obstacle_detector/Obstacles.h"
 
 using namespace casadi;
 using json = nlohmann::json;
@@ -40,9 +40,6 @@ public:
   
   ros::Publisher carControl_pub_;
 
-  // std::vector<std::tuple<std::string, double, double>> extract_nodes_data(pugi::xml_node root);
-  // std::vector<std::tuple<std::string, std::string, bool>> extract_edges_data(pugi::xml_node root);
-  // std::vector<int> finding_path(int temp_source_, int temp_target_, std::map<int, std::pair<double, double>>& noded_, std::map<int, std::pair<int, int>>& edged_, std::vector<std::string>& obs_dontuse_);
   double new_point_counter_ = 600;
 
   typedef struct {
@@ -138,7 +135,7 @@ public:
   std::vector<std::tuple<int, int, bool>> edges_data_true_ilkverisyon_;
   std::string car_behaviour_state_ = "keep_lane";
 
-  std::vector<int> center_x_, center_y_;
+  std::vector<double> center_x_, center_y_;
   std::vector<std::tuple<std::string, std::string, bool>> pathOriginal_;
   std::vector<std::tuple<int, double, double>> path_;
   std::map<std::string, std::pair<double, double>> new_node_data_;
@@ -155,7 +152,7 @@ public:
 
   std::string graphml_file_path_;
   std::string scenerio_name_;
-  std::string graphml_filename_ = "gercek2.graphml";
+  std::string graphml_filename_ = "fixed2.graphml";
 
 
   // Public Functions for mpc_running.h
@@ -182,13 +179,13 @@ private:
   void controlCb(const ros::TimerEvent&);
   void imuCb(const sensor_msgs::Imu::ConstPtr& msg);
   void localisationCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg); 
+  void obstacleDetectionCb(const obstacle_detector::Obstacles::ConstPtr& msg);
   void process_and_publish_data(int temp_source, int temp_target);
   
   void function_one();
   void get_parameters();
 
-  // Private Variables
-  int control_rate_;
+  int control_rate_{30};
   bool mpc_started_{ false };
   bool imu_data_received_ = false;
   bool localisation_data_received_ = false;
@@ -200,6 +197,7 @@ private:
   ros::Subscriber imu_sub_;
   ros::Subscriber localisation_sub_;  
   ros::Subscriber image_sub_;
+  ros::Subscriber obstacle_detection_sub_;
   // Publishers
   ros::Publisher cmd_pub_;
   // Node Handle
@@ -207,8 +205,6 @@ private:
   ros::NodeHandle nh_local_;
 
   sensor_msgs::Image image_data_;
-
-
 
 };
 
