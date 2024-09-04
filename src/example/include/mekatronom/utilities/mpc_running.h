@@ -325,11 +325,14 @@ public:
         std::vector<std::string> sign_looking_band;
         std::string current_id_for_obstacles = calculateClosestNodeId(node.djikstra_outputs_.pathGoalsYawDegreeCopy, 
                                                                     node.localisation_data_.x, node.localisation_data_.y);
+
         for (int i = 1; i <= 5; ++i) {
+            std::cout << "Processing obstacle nodes for iteration " << i << std::endl;
             std::vector<std::pair<std::string, std::string>> matching_pairs_signs = findMatchingPairs(node.djikstra_outputs_.SourceTargetNodesCopy, current_id_for_obstacles);
             
             std::tuple<int, double, double, double> matching_entry;
             std::tuple<int, double, double, double> matching_entry_second;
+
 
             auto matching_entry_opt = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, current_id_for_obstacles);
 
@@ -340,6 +343,7 @@ public:
             }
 
             if (!matching_pairs_signs.empty()) {
+                std::cout << "\nMatching pairs found for current node id: " << current_id_for_obstacles << std::endl;
                 std::string next_id_signs = matching_pairs_signs[0].second;
                 
                 auto matching_entry_second_opt = findMatchingEntry(node.djikstra_outputs_.pathGoalsYawDegreeCopy, next_id_signs);
@@ -370,9 +374,13 @@ public:
                             const std::array<double, 2>& target_position, 
                             double x_thereshold, double y_thereshold) 
     {
+        Eigen::Vector2d targetVec(target_position[0], target_position[1]);
+
         for (size_t i = 0; i < node.center_x_.size(); ++i) {
             Eigen::Vector2d obstacleVec(node.center_x_[i], node.center_y_[i]);
-            Eigen::Vector2d targetVec(target_position[0], target_position[1]);
+
+            std::cout << "\nChecking obstacle proximity for obstacle at (" << node.center_x_[i] << ", " << node.center_y_[i] << ")" << std::endl;
+            std::cout << "\nTarget position: (" << target_position[0] << ", " << target_position[1] << ")" << std::endl;
 
             for (const auto& [node_id, coordinates] : node.djikstra_outputs_.obstacle_node_positions) {
                 double x = coordinates.first;
@@ -389,10 +397,11 @@ public:
                 }
             }
 
-            if (std::find(node.initial_settings_.parking_nodes_id.begin(), 
-                        node.initial_settings_.parking_nodes_id.end(), 
-                        node.initial_settings_.target_node) != node.initial_settings_.parking_nodes_id.end()) 
+            if (std::find(node.initial_settings_.parking_spot_is_full.begin(), 
+                        node.initial_settings_.parking_spot_is_full.end(), 
+                        node.initial_settings_.target_node) != node.initial_settings_.parking_spot_is_full.end()) 
             {
+                std::cout << "Target node is a parking spot. Updating target node to the next parking spot" << std::endl;
                 node.initial_settings_.target_node = node.initial_settings_.parking_nodes_id[0];
                 Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node);
             }
@@ -464,7 +473,11 @@ public:
 
             // Check if excluded nodes have changed and update if necessary
             if (node.initial_settings_.excluded_nodes != past_excluded_nodes) {
-                Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node); 
+                std::cout << "\n\nExcluded nodes have changed. Updating Djikstra" << std::endl;
+                std::cout << "closest_node_id_original: " << closest_node_id_original << std::endl;
+                std::cout << "node.initial_settings_.target_node: " << node.initial_settings_.target_node << std::endl;
+                std::cout << "node.initial_settings_.excluded_nodes: " << node.initial_settings_.excluded_nodes << std::endl;
+                processAndPublishPath processAndPublishPath(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node); 
                 node.last_update_time_.obstacles_checking = ros::Time::now().toSec();
             }
             else {

@@ -33,21 +33,21 @@
 // enable this for verbose debug information
 // #define DEBUG
 
-class Djikstra  {
+class processAndPublishPath  {
 public:
-    Djikstra(std::string& graphml_file_path_,std::string source_node_, std::string target_node_, MpcNode& mpc_node)
+    processAndPublishPath(std::string& graphml_file_path_,std::string source_node_, std::string target_node_, MpcNode& mpc_node)
     {
         
         clock_t stx = clock();
         pugi::xml_document doc;
-        pugi::xml_parse_result result = doc.load_file(graphml_file_path_.c_str());  // Load the XML file
-        ROS_INFO_ONCE("RESULT: %s", result.description());
+        pugi::xml_parse_result result = doc.load_file(graphml_file_path_.c_str());  
+        ROS_INFO("RESULT: %s", result.description());
 
         if (!result) {
             ROS_ERROR("Error loading XML file: %s", result.description());
             return;
         }
-        pugi::xml_node root = doc.child("graphml");  // Adjust the root node name as per your XML structure
+        pugi::xml_node root = doc.child("graphml");  
         if (!root) {
             ROS_ERROR("Error: no root node found in the XML file.");
             return;
@@ -62,7 +62,8 @@ public:
 
         for (const auto& node : mpc_node.nodes_data_ ) {
             const auto& node_id = std::get<0>(node);
-            if (std::find(mpc_node.initial_settings_.parking_nodes_id.begin(), mpc_node.initial_settings_.parking_nodes_id.end(), node_id) != mpc_node.initial_settings_.parking_nodes_id.end()) {
+            if (std::find(mpc_node.initial_settings_.parking_nodes_id.begin(), 
+                mpc_node.initial_settings_.parking_nodes_id.end(), node_id) != mpc_node.initial_settings_.parking_nodes_id.end()) {
                 double x = std::get<1>(node);
                 double y = std::get<2>(node);
                 mpc_node.djikstra_outputs_.obstacle_node_positions[node_id] = std::make_pair(x, y);
@@ -87,61 +88,65 @@ public:
         }
 
 #ifdef DEBUG
-        std::cout << "\n\n\nNext section ismpc_node.nodes_data_:\n ";
+        std::cout << "\n\n\nNext section is mpc_node.nodes_data_:\n ";
         for (const auto& node : mpc_node.nodes_data_) {
             std::cout << std::get<0>(node) << ": (" << std::get<1>(node) << ", " << std::get<2>(node) << ") ";
         }
         std::cout << std::endl;
 
-        std::cout << "\n\n\nmpc_node.edges_data_: \n";
+        std::cout << "\n\n\next section is nmpc_node.edges_data_: \n";
         for (const auto& edge : mpc_node.edges_data_) {
             std::cout << std::get<0>(edge) << " -> " << std::get<1>(edge) << " (" << (std::get<2>(edge) ? "true" : "false") << ") ";
         }
         std::cout << std::endl;
 #endif
-        ROS_INFO_ONCE("Starting to extract_graph");
         std::map<std::string, MpcNode::NodeInfo> noded;
         std::map<std::string, std::vector<std::pair<std::string, double>>> edged;
         std::tie(noded, edged) = extract_graph(mpc_node.nodes_data_, mpc_node.edges_data_);
         
-// #ifdef DEBUG
-//         std::cout << "\n\n\nnoded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
+#ifdef DEBUG
+        std::cout << "\n\n\nnoded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
 
-//         std::cout << "\n\n\nOutputs of noded:" << std::endl;
-//         for (const auto& [key, value] : noded) {
-//             std::cout << key << ": ("
-//                     << "distance: " << value.distance << ", "
-//                     << "pass_through: " << std::boolalpha << value.pass_through << ", "
-//                     << "x: " << value.x << ", "
-//                     << "y: " << value.y << ", "
-//                     << "atalist: [";
+        std::cout << "\n\n\nOutputs of noded:" << std::endl;
+        for (const auto& [key, value] : noded) {
+            std::cout << key << ": ("
+                    << "distance: " << value.distance << ", "
+                    << "pass_through: " << std::boolalpha << value.pass_through << ", "
+                    << "x: " << value.x << ", "
+                    << "y: " << value.y << ", "
+                    << "atalist: [";
 
-//             for (size_t i = 0; i < value.atalist.size(); ++i) {
-//                 if (i > 0) std::cout << ", ";
-//                 std::cout << value.atalist[i];
-//             }
-//             std::cout << "])" << std::endl;
-//         }
+            for (size_t i = 0; i < value.atalist.size(); ++i) {
+                if (i > 0) std::cout << ", ";
+                std::cout << value.atalist[i];
+            }
+            std::cout << "])" << std::endl;
+        }
 
-//         std::cout << "\n\n\nOutputs of edged:" << std::endl;
-//         for (const auto& [key, value] : edged) {
-//             std::cout << key << ": ";
-//             for (const auto& v : value) {
-//                 std::cout << "(" << v.first << ", " << v.second << ") ";
-//             }
-//             std::cout << " ";
-//         }
-//         std::cout << std::endl;
-
-// #endif
+        std::cout << "\n\n\nOutputs of edged:" << std::endl;
+        for (const auto& [key, value] : edged) {
+            std::cout << key << ": ";
+            for (const auto& v : value) {
+                std::cout << "(" << v.first << ", " << v.second << ") ";
+            }
+            std::cout << " ";
+        }
+        std::cout << std::endl;
+#endif
+        
         mpc_node.shortest_path_ = dijkstra(source_node_, target_node_, noded, edged, mpc_node.initial_settings_.excluded_nodes, mpc_node);
+        
         mpc_node.pathOriginal_ = stformat(mpc_node.shortest_path_);            
-
         mpc_node.djikstra_outputs_.node_dict = noded;
+        
+
         auto [new_node_data, stlist] = beizer(mpc_node.shortest_path_, noded, mpc_node);
         mpc_node.new_node_data_ = new_node_data;
+        
+        ROS_INFO("\n\nCalculated path is :", mpc_node.shortest_path_);
 
 #ifdef DEBUG
+        std::cout << "\n\n\nmpc_node.shortest_path_ "<< mpc_node.shortest_path_ << std::endl;
 
         std::cout << "\n\n\nnoded size: " << noded.size() << " edged size: " << edged.size() << std::endl;
 
@@ -299,25 +304,25 @@ public:
 
     }
 
+
     std::vector<std::string> dijkstra(const std::string& source, const std::string& target,
-                                            std::map<std::string, MpcNode::NodeInfo>& nodedictt,
-                                            std::map<std::string, std::vector<std::pair<std::string, double>>>& edgedictt,
-                                            const std::vector<std::string>& yasaklistesi,
+                                            std::map<std::string, MpcNode::NodeInfo>& nodedict,
+                                            std::map<std::string, std::vector<std::pair<std::string, double>>>& edgedict,
+                                            const std::vector<std::string>& excluded_nodes,
                                             MpcNode& mpc_node) {
 
         std::cout << "____________________" << source << std::endl;
         std::cout << "____________________" << target << std::endl; 
 
-        std::vector<std::string> nowaypoints;
-        std::vector<std::string> nowaypoints2;
+        std::vector<std::string> nowaypoints_source;
+        std::vector<std::string> nowaypoints_target;
 
-        // Remove blocked paths
-        for (auto& ed : edgedictt) {
+        for (auto& ed : edgedict) {
             for (auto it = ed.second.begin(); it != ed.second.end(); ) {
-                if (std::find(yasaklistesi.begin(), yasaklistesi.end(), it->first) != yasaklistesi.end()) {
-                    nowaypoints.push_back(ed.first);
-                    nowaypoints2.push_back(it->first);
-                    it = ed.second.erase(it);  // Remove the blocked path
+                if (std::find(excluded_nodes.begin(), excluded_nodes.end(), it->first) != excluded_nodes.end()) {
+                    nowaypoints_source.push_back(ed.first);
+                    nowaypoints_target.push_back(it->first);
+                    it = ed.second.erase(it);  
                 } else {
                     ++it;
                 }
@@ -328,12 +333,11 @@ public:
         std::unordered_map<std::string, double> visited;
         std::unordered_map<std::string, std::vector<std::string>> paths;
 
-        // Initialize unvisited nodes with infinite distance
-        for (const auto& edge : edgedictt) {
+        for (const auto& edge : edgedict) {
             unvisited[edge.first] = std::numeric_limits<double>::infinity();
         }
         unvisited[source] = 0;
-        paths[source] = {source};  // Initialize the path for the source
+        paths[source] = {source};  
 
         while (!unvisited.empty()) {
             // Find the node with the minimum distance
@@ -343,38 +347,38 @@ public:
             visited[minNode.first] = minNode.second;
 
             // Update distances to neighbors
-            for (const auto& neighbor : edgedictt[minNode.first]) {
+            for (const auto& neighbor : edgedict[minNode.first]) {
                 if (visited.find(neighbor.first) != visited.end()) continue;
 
-                double newDistance = visited[minNode.first] + neighbor.second; // assuming neighbor.second is the distance
+                double newDistance = visited[minNode.first] + neighbor.second; 
 
                 if (newDistance < unvisited[neighbor.first]) {
                     unvisited[neighbor.first] = newDistance;
-                    paths[neighbor.first] = paths[minNode.first];  // Copy the path to the current node
-                    paths[neighbor.first].push_back(neighbor.first);  // Add the neighbor to the path
+                    paths[neighbor.first] = paths[minNode.first];  
+                    paths[neighbor.first].push_back(neighbor.first); 
 
-                    nodedictt[neighbor.first].distance = newDistance;
-                    nodedictt[neighbor.first].atalist = paths[neighbor.first];
+                    nodedict[neighbor.first].distance = newDistance;
+                    nodedict[neighbor.first].atalist = paths[neighbor.first];
                 }
             }
 
-            unvisited.erase(minNode.first);  // Remove the current node from unvisited
+            unvisited.erase(minNode.first);  
         }
 
-        std::vector<std::string> yolll = nodedictt[target].atalist;
+        std::vector<std::string> path = nodedict[target].atalist;
 
-        if (std::find(yolll.begin(), yolll.end(), source) != yolll.end() &&
-            std::find(yolll.begin(), yolll.end(), target) != yolll.end()) {
+        if (std::find(path.begin(), path.end(), source) != path.end() &&
+            std::find(path.begin(), path.end(), target) != path.end()) {
 
-            bool trflstate = false;
-            bool yayastate = false;
-            bool expathstate = false;
+            bool traffic_light_state = false;
+            bool pedesterian = false;
+            bool is_past_path_is_shortest = false;
 
             
-            if (trflstate || yayastate || expathstate) {
+            if (traffic_light_state || pedesterian || is_past_path_is_shortest) {
 
                 std::string bagendxx;
-                for (const auto& tempstopxx : yasaklistesi) {
+                for (const auto& tempstopxx : excluded_nodes) {
                     if (std::find(mpc_node.expath_.begin(), mpc_node.expath_.end(), tempstopxx) != mpc_node.expath_.end()) {
                         bagendxx = tempstopxx;
                         break;
@@ -390,16 +394,16 @@ public:
                     befbagendxx = mpc_node.expath_[indexnoEXxx];
                 }
 
-                nodedictt[befbagendxx].atalist.push_back(befbagendxx);
-                return nodedictt[befbagendxx].atalist;
+                nodedict[befbagendxx].atalist.push_back(befbagendxx);
+                return nodedict[befbagendxx].atalist;
             } else {
                 auto yolvar = true;
-                mpc_node.expath_ = nodedictt[target].atalist;
-                return nodedictt[target].atalist;
+                mpc_node.expath_ = nodedict[target].atalist;
+                return nodedict[target].atalist;
             }
         } else {
             std::string bagend;
-            for (const auto& tempstopx : yasaklistesi) {
+            for (const auto& tempstopx : excluded_nodes) {
                 if (std::find(mpc_node.expath_.begin(), mpc_node.expath_.end(), tempstopx) != mpc_node.expath_.end()) {
                     bagend = tempstopx;
                     break;
@@ -413,11 +417,11 @@ public:
                 befbagend = mpc_node.expath_[indexnoEX];
             }
 
-            nodedictt[befbagend].atalist.push_back(befbagend);
-            return nodedictt[befbagend].atalist;
+            nodedict[befbagend].atalist.push_back(befbagend);
+            return nodedict[befbagend].atalist;
         }
 
-        return nodedictt[target].atalist;
+        return nodedict[target].atalist;
     }
 
     std::vector<std::string> convertPathToString(const std::vector<int>& int_path) {
@@ -590,14 +594,14 @@ public:
 
         // Fill nodedict
         for (const auto& node : nodes_data_) {
-            bool sollacurrent = false;
-            for (const auto& ciz : edges_data_) {
-                if (std::get<0>(ciz) == std::get<0>(node)) {
-                    sollacurrent = !std::get<1>(ciz).empty();
+            bool pass_through_current_node = false;
+            for (const auto& delete_node : edges_data_) {
+                if (std::get<0>(delete_node) == std::get<0>(node)) {
+                    pass_through_current_node = !std::get<1>(delete_node).empty();
                     break;
                 }
             }
-            nodedict[std::get<0>(node)] = {inf, {}, sollacurrent, std::get<1>(node), std::get<2>(node)};
+            nodedict[std::get<0>(node)] = {inf, {}, pass_through_current_node, std::get<1>(node), std::get<2>(node)};
         }
 
         // Fill edgedict
