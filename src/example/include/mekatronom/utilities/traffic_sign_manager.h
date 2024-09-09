@@ -52,7 +52,7 @@ public:
                 }
                 node.initial_settings_.obstacles_array.clear();
 
-                Djikstra djikstra(node.graphml_file_path_, node.closest_node_id_original_, node.initial_settings_.target_node, node); 
+                processAndPublishPath processAndPublishPath(node.graphml_file_path_, node.closest_node_id_original_, node.initial_settings_.target_node, node); 
             }     
 
         else

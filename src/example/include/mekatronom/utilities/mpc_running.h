@@ -403,7 +403,7 @@ public:
             {
                 std::cout << "Target node is a parking spot. Updating target node to the next parking spot" << std::endl;
                 node.initial_settings_.target_node = node.initial_settings_.parking_nodes_id[0];
-                Djikstra djikstra(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node);
+                processAndPublishPath processAndPublishPath(node.graphml_file_path_, closest_node_id_original, node.initial_settings_.target_node, node);
             }
 
             // Calculate distance to the target position
