@@ -1,4 +1,3 @@
-
 # Use the ROS Noetic base image
 FROM osrf/ros:noetic-desktop-full
 
@@ -17,6 +16,9 @@ RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 # Set ownership of the home directory to the new user
 RUN mkdir -p /home/$USERNAME && chown -R $USERNAME:$USERNAME /home/$USERNAME
 
+# Switch to root to install necessary tools and dependencies
+USER root
+
 # Install necessary tools and dependencies
 RUN apt-get update && apt-get install -y \
     curl \
@@ -30,6 +32,7 @@ RUN apt-get update && apt-get install -y \
     sudo \
     git \
     python3-pip \  
+    nlohmann-json3-dev \
     ros-noetic-geometry-msgs \
     ros-noetic-std-msgs \
     ros-noetic-rospy \
@@ -47,37 +50,28 @@ RUN apt-get update && apt-get install -y \
     libgeographic-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
+# CasaDI installation
+WORKDIR /home/$USERNAME
 USER $USERNAME
-
-WORKDIR /home/$USERNAME
-
 RUN git clone --recurse-submodules https://github.com/casadi/casadi.git
-
 WORKDIR /home/$USERNAME/casadi
-RUN mkdir -p build && cd build && cmake -DWITH_IPOPT=true .. && sudo make install && sudo apt update
-
-# Set up bash-completion
-RUN echo "if [ -f /etc/bash_completion ]; then" >> ~/.bashrc
-RUN echo "  . /etc/bash_completion" >> ~/.bashrc
-RUN echo "fi" >> ~/.bashrc
-RUN echo "source /opt/ros/noetic/setup.bash" >> /home/baha/.bashrc
-WORKDIR /home/$USERNAME
+RUN mkdir -p build && cd build && cmake -DWITH_IPOPT=true .. && make -j$(nproc)
+USER root
+RUN cd /home/$USERNAME/casadi/build && make install
 
 # Set up Catkin workspace
+WORKDIR /home/$USERNAME
 RUN mkdir -p autonomus_ws/src && chown -R $USERNAME:$USERNAME autonomus_ws
-
-# Clone the required repositories if needed
 RUN cd autonomus_ws/src && git clone -b devel https://github.com/Renbago/autonomus_vehicle.git
-RUN cd /home/$USERNAME/autonomus_ws && \
-    source /opt/ros/noetic/setup.bash && \
-    catkin_make
 
-# Make C++ and Python files executable
-RUN find /home/$USERNAME/autonomus_ws/src/autonomus_vehicle -type f -name "*.cpp" -exec chmod +x {} \;
-RUN find /home/$USERNAME/autonomus_ws/src/autonomus_vehicle -type f -name "*.py" -exec chmod +x {} \;
-
-# Set environment variables for ROS and Gazebo
-RUN echo 'export ROS_PACKAGE_PATH="/home/'$USERNAME'/autonomus_ws/src/autonomus_vehicle/src:$ROS_PACKAGE_PATH"' >> ~/.bashrc
-RUN echo 'export GAZEBO_MODEL_PATH="/home/'$USERNAME'/autonomus_ws/src/autonomus_vehicle/src/models_pkg:$GAZEBO_MODEL_PATH"' >> ~/.bashrc
-RUN echo 'source /home/'$USERNAME'/autonomus_ws/devel/setup.bash' >> ~/.bashrc
+# Set up bash-completion and ROS environment variables in a single block
+USER $USERNAME
+RUN echo "if [ -f /etc/bash_completion ]; then" >> ~/.bashrc && \
+    echo "  . /etc/bash_completion" >> ~/.bashrc && \
+    echo "fi" >> ~/.bashrc && \
+    echo "source /opt/ros/noetic/setup.bash" >> /home/$USERNAME/.bashrc && \
+    echo 'export ROS_PACKAGE_PATH="/home/'$USERNAME'/autonomus_ws/src/autonomus_vehicle/src:$ROS_PACKAGE_PATH"' >> ~/.bashrc && \
+    echo 'export GAZEBO_MODEL_PATH="/home/'$USERNAME'/autonomus_ws/src/autonomus_vehicle/src/models_pkg:$GAZEBO_MODEL_PATH"' >> ~/.bashrc && \
+    echo 'source /home/'$USERNAME'/autonomus_ws/devel/setup.bash' >> ~/.bashrc && \
+    find /home/$USERNAME/autonomus_ws/src/autonomus_vehicle -type f -name "*.py" -exec chmod +x {} \; && \
+    find /home/$USERNAME/autonomus_ws/src/autonomus_vehicle -type f -name "*.cpp" -exec chmod +x {} \;
