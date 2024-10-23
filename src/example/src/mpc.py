@@ -57,18 +57,12 @@ class MPC():
         self.yolo_data = MekatronomYolo()
 
         self.state = "keep lane"
-        # self.intercept_targets = ['416','440','470', '486', '58', '6', '42', '20', '26', '58','451','452','454','453','455','456']
-        # self.intercept_targets = ["469","407","416","402","422","385","398","356","330","237"
-        #                                 ,"215","164","148","151","177"
-        #                                 ,"141","138","144","135","132","143","6","129","126","30"
-        #                                 ,"123","120","98","95","51","60","47","18","26","104","101","447"
-        #                                 ,"486","445","440","452"]
+
         
         self.intercept_targets = ["243","261","252","54","51","56","317","367","397","404","34","84","163","80","93","176",
                                         "91","14","18","2","6","143","102","32","16","222","219","30","38","100","26","42",
                                         "109","113","121","75","185","71","40","205","226","283","198"]
 
-        # self.dont_check_obstacles_here = ["454","455","456","457","458","459","460","461","462","463","464","465","466","467"]
         self.dont_check_obstacles_here = ["228","229","230","231","232","233","234","235","236","237","238","239","240"]
         # self.parking_secture_nodes_id = ["450","451","452","453","454","455","456","457","458","459","460","461","462","463","464","465","466","467"]
 
@@ -95,9 +89,7 @@ class MPC():
         self.file_path_original ='/home/baha/autonomus_ws/src/autonomus_vehicle/src/example/graphml/gercek2.graphml'
         self.callnumber=0
         self.new_point_ctr=600
-        # self.obs_dontuse=["427","362","127","140","150"]#kullanma listesi
         self.obs_dontuse = ["273"]
-        # self.obs_dontuse=[]#kullanma listesi
         self.yolvar=False
         self.parking_nodes_id = ["900","901","902","903","904","910","911","912","913","914"]
         self.traffic_light_nodes_id = ["32","121","135"]
@@ -155,19 +147,9 @@ class MPC():
 
     def shift_timestep(self):
         
-        # rospy.loginfo('shift_time_step')
-        # rospy.loginfo('shift_time_step')
-
         self.state_init = ca.DM([self.position_x, self.position_y,  self.yaw_rad])
-        #print("self.u[1, :].T",self.u[1, :].T)
         f_value = self.f(self.state_init,self.u[0, :].T)
-
-        # print("f_Value",f_value)
         self.next_state = ca.DM.full(self.state_init + (self.step_horizon * f_value))
-        # print("self.initial_state",self.state_init)
-        #print("self.next_state",self.next_state)
-        # print("self.staate_init",self.state_init)
-        # print("self.state_target",self.state_target)
         self.t0 = self.t0 + self.step_horizon
         self.u0 = ca.vertcat(self.u[1:, :], self.u[-1, :])
 
@@ -263,10 +245,6 @@ class MPC():
         matrix = np.array([1,4])
         self.Q_x,self.Q_y = np.dot(rotationMatrix,matrix)
 
-        #print("Q_x",Q_x,"Q_y", Q_y )
-
-        ######eklenen yeni kod:
-
         nodes_x = np.array([node[1] for node in self.pathGoalsYawDegreeCopy])
         nodes_y = np.array([node[2] for node in self.pathGoalsYawDegreeCopy])
         
@@ -275,7 +253,6 @@ class MPC():
         closest_node_id = self.pathGoalsYawDegreeCopy[index][0]
         self.last_path_index = index        
 
-        # current_id = closest_node_id
         if self.park_scenerio:
             current_id = self.current_id
             print("parking scenerio")
@@ -286,15 +263,14 @@ class MPC():
         matching_pairs = [pair for pair in self.SourceTargetNodesCopy if pair[0] == current_id]
         next_id = matching_pairs[0][1]
         matching_entry = next((entry for entry in self.pathGoalsYawDegreeCopy if entry[0] == next_id), None)
-        #print("matching_entry",matching_entry)
+
         target_x, target_y = matching_entry[1], matching_entry[2]
         target_y = target_y
-        #print("target_x",target_x)
-        #print("target_y",target_y)
+
         dx = target_x - self.position_x
         dy = target_y - self.position_y
         yaw = atan2(dy, dx)
-        ######
+
         self.goal_id = matching_entry
         state_init = ca.DM([self.position_x, self.position_y, self.yaw_rad])        # initial state
         state_target = ca.DM([target_x, target_y, yaw])
@@ -302,14 +278,6 @@ class MPC():
         print("state_init",state_init)
         print("state_target",state_target)
 
-        #bu eklediğim state_target kısmıyla buradan state_target girmene gerek kalmaması lazım. sadece zed'e konum girsen olur.
-
-
-        #state_target = ca.DM([6.07, 13.72-13.04, 0.0])  # target state
-        #state_target = ca.DM([9.1, 13.72-13.07, 0.0])   #parking scenerio
-        #state_target = ca.DM([0.5, 0.0, 0.0])
-        
-        # state symbolic variables
         x = ca.SX.sym('x')
         y = ca.SX.sym('y')
         theta = ca.SX.sym('theta')
@@ -320,7 +288,6 @@ class MPC():
         )
         n_states = states.numel()
 
-        #new define
         v = ca.SX.sym('v')
         omega = ca.SX.sym('omega')
         controls = ca.vertcat(
@@ -328,14 +295,13 @@ class MPC():
             omega
         )
         n_controls = controls.numel()
-        # print("n_controls",n_controls)
 
         # matrix containing all states over all time steps +1 (each column is a state vector)
         X = ca.SX.sym('X', n_states, (N + 1))
 
         # matrix containing all control actions over all time steps (each column is an action vector)
         U = ca.SX.sym('U', n_controls, N)
-        # print(U)
+
         # coloumn vector for storing initial state and target state
         P = ca.SX.sym('P', n_states + n_states)
 
@@ -376,19 +342,12 @@ class MPC():
         g = X[:, 0] - P[:n_states]  # constraints in the equation
 
         st = X[:,0]
-        # print("st",st)
-        # runge kutta
-        #print(P[3:6])
-        #print("g",g)
-        #print("st",st)
+
 
         for k in range(N):
             st = X[:, k]
             con = U[:, k]
-            #print("con",con)
-            #print("st",st)
-            #print(R)
-            #
+
             cost_fn = cost_fn + ca.mtimes(ca.mtimes((st - P[3:6]).T, Q), (st - P[3:6])) + ca.mtimes(ca.mtimes(con.T, R), con)
 
             st_next = X[:, k+1]
@@ -397,11 +356,6 @@ class MPC():
             k2 = f(st + (step_horizon/2)*k1, con)
             k3 = f(st + (step_horizon/2)*k2, con)
             k4 = f(st + step_horizon * k3, con)
-
-            #print("k1", k1)
-            #print("k2", k2)
-            #print("k3", k3)
-            #print("k4", k4)
 
 
             st_next_RK4 = st + (step_horizon / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
@@ -413,22 +367,6 @@ class MPC():
         obs_y = -3.0
         obs_diam = 0.3
         #print(g.shape)
-
-        #Engelden Kaçma constraints eklenmesi
-
-        # for k in range(N+1):  # In Python, range goes from 0 to N, so we use range(N+1) for 1 to N+1
-        #     # Calculate the squared distance from the robot to the obstacle
-        #     distance_squared = (X[0, k] - obs_x)**2 + (X[1, k] - obs_y)**2
-        #     # The constraint ensures the robot stays outside the sum of the semi-diameters
-        #     constraint = -ca.sqrt(distance_squared) + (rob_diam/2 + obs_diam/2)
-        #     # Append the constraint to the list
-        #     g = ca.vertcat(g,constraint)
-            
-        #print(g.shape)    
-          # Vertically concatenate all constraints into a CasADi vector
-        #print("g",g)
-        #print("st",st)
-        #print("con",con)
 
         OPT_variables = ca.vertcat(   # Example: 3x11 ---> 33x1 where 3=states, 11=N+1
             ca.reshape(X,3*(N+1),1),
@@ -480,8 +418,6 @@ class MPC():
         ubx[n_states*(N+1)+1:n_states*(N+1)+2*N:2] = omega_max                  # omega bound for all V
 
 
-        #print("lbx",lbx)
-        #print("ubx",ubx)
 
         args = {
             'lbg': lbg,  # constraints lower bound
@@ -489,10 +425,6 @@ class MPC():
             'lbx': lbx,
             'ubx': ubx
         }
-
-        #print('Size of lbg:', args['lbg'].shape)
-
-
 
         # print("args",args)
         self.t0 = 0
@@ -512,14 +444,6 @@ class MPC():
         cat_controls = np.array([]).reshape(0, u0.shape[1])
 
         self.times = np.array([[0]])
-
-        # print("ilk_u0",u0)
-        # print("ilk_X0",X0)
-        # print("state_init",state_init)
-        # print("cat_states",cat_states)
-        # print("cat_controls",cat_controls)
-
-
 
         self.step_horizon = step_horizon
         self.cat_controls = cat_controls
@@ -554,40 +478,6 @@ class MPC():
                     print("mpc settings finished")
                 self.prev_time = rospy.Time.now().to_sec()
                 
-                # lbx = ca.DM.zeros((self.n_states*(self.N+1) + self.n_controls*self.N, 1))
-                # ubx = ca.DM.zeros((self.n_states*(self.N+1) + self.n_controls*self.N, 1))
-                # lbg = ca.DM.zeros((self.n_states*(self.N+1), 1))
-                # ubg = ca.DM.zeros((self.n_states*(self.N+1), 1))
-
-                # # lbg[self.n_states*(self.N+1)+1: 3*(self.N+1) + (self.N+1)] = -ca.inf
-                # # ubg[self.n_states*(self.N+1)+1: 3*(self.N+1) + (self.N+1)] = 0
-
-                # lbx[0: self.n_states*(self.N+1): self.n_states] = -ca.inf     # X lower bound
-                # lbx[1: self.n_states*(self.N+1): self.n_states] = -ca.inf     # Y lower bound
-                # lbx[2: self.n_states*(self.N+1): self.n_states] = -ca.inf     # theta lower bound
-
-                # ubx[0: self.n_states*(self.N+1): self.n_states] = ca.inf      # X upper bound
-                # ubx[1: self.n_states*(self.N+1): self.n_states] = ca.inf      # Y upper bound
-                # ubx[2: self.n_states*(self.N+1): self.n_states] = ca.inf      # theta upper bound
-
-                # lbx[self.n_states*(self.N+1):self.n_states*(self.N+1)+2*self.N:2] = self.v_min                  # v lower bound for all V
-                # ubx[self.n_states*(self.N+1):self.n_states*(self.N+1)+2*self.N:2] = self.v_max                  # v upper bound for all V
-                # lbx[self.n_states*(self.N+1)+1:self.n_states*(self.N+1)+2*self.N:2] = self.omega_min                  # omega bound for all V
-                # ubx[self.n_states*(self.N+1)+1:self.n_states*(self.N+1)+2*self.N:2] = self.omega_max                  # omega bound for all V
-
-
-                # #print("lbx",lbx)
-                # #print("ubx",ubx)
-
-                # args = {
-                #     'lbg': lbg,  # constraints lower bound
-                #     'ubg': ubg,  # constraints upper bound
-                #     'lbx': lbx,
-                #     'ubx': ubx
-                # }
-
-
-                # self.args = args
 
 
                 self.args['p'] = ca.vertcat(
@@ -615,8 +505,6 @@ class MPC():
 
                 print("\n\n\nstate_target",self.state_target)
 
-                # Daha sonra yeniden şekillendirin
-                # print("self.u",self.u)
 
                 self.cat_states = np.dstack((
                     self.cat_states,
@@ -629,10 +517,7 @@ class MPC():
                 ))
 
                 self.shift_timestep()
-                
-                # print("self.u0",self.u0)
 
-                #print("output_shift_time_step")
                 self.X0 = ca.reshape((sol['x'][: self.n_states * (self.N+1)]).T, self.n_states, self.N+1).T
                 # print("self.X0 ",self.X0)
 
@@ -641,25 +526,12 @@ class MPC():
                     ca.reshape(self.X0[-1, :], 1, -1)
                 )
 
-                # print("self.X0",self.X0)
-                # xx ...
-
-                # print("u",self.u)
-                # print("uygulanan kontrol degree",self.DM2Arr(self.u[0, 1]))
-                # self.twist.angular.z = float(self.DM2Arr(self.u[0, 1]))
-                # self.twist.linear.x = float(self.DM2Arr(self.u[0, 0]))
 
                 if self.state == "keep lane":
                     self.steerAngle = math.degrees(float(self.DM2Arr(self.u[0, 1])))
                     self.steerLateral = float(self.DM2Arr(self.u[0, 0]))
                     self.carControlPublisher()
 
-
-                #print("self.u",self.u)
-                # print("self.state_init",self.state_init)
-                # print("self.state_target",self.state_target)
-                # print("self.next_state",self.next_state)
-                #print("self.pathGoalsYawDegree:",self.pathGoalsYawDegree)
 
                 state_target_slice = self.state_target[:2]
                 state_init_slice = self.state_init[:2]
@@ -720,18 +592,16 @@ class MPC():
 
                     nodes_x_for_obstacles = np.array([node[1] for node in self.pathGoalsYawDegreeCopy])
                     nodes_y_for_obstacles = np.array([node[2] for node in self.pathGoalsYawDegreeCopy])
-                    #print("nodes_x",nodes_x )
-                    #print("nodes_y",nodes_y)
 
                     distances = np.sqrt((nodes_x_for_obstacles - self.position_x)**2 + (nodes_y_for_obstacles - self.position_y)**2)
                     min_distance, index = min((val, idx) for (idx, val) in enumerate(distances))
                     current_id_for_obstacles = self.pathGoalsYawDegreeCopy[index][0]
-
+                    print(type(current_id_for_obstacles))
+                    
                     for i in range(1, 5):
                         matching_pairs_signs = [pair for pair in self.SourceTargetNodesCopy if pair[0] == current_id_for_obstacles]
                         matching_entry = next((entry for entry in self.pathGoalsYawDegreeCopy if entry[0] == current_id_for_obstacles), None)
-                        # print("self.path_original",self.path_original)
-                        # print("self.SourceTargetNodes",self.SourceTargetNodes)
+
                         print("testing")    
                         print("matching_entry",matching_entry)
                         print("matcihing_pairs_signs",matching_pairs_signs)
@@ -762,10 +632,6 @@ class MPC():
                             for center_x, center_y in zip(self.center_x, self.center_y):
                                 ObstaclePosition = [center_x, center_y]
 
-                            # ('900', 9.44, 1.0099999999999998), ('901', 10.23, 1.0099999999999998), ('902', 10.99, 1.0099999999999998), 
-                            # ('903', 11.71, 1.0099999999999998), ('904', 12.41, 1.0099999999999998), ('910', 9.44, 0.3100000000000005), ('911', 10.23, 0.3100000000000005), 
-                            # ('912', 10.99, 0.3100000000000005), ('913', 11.71, 0.3100000000000005), ('914', 12.41, 0.3100000000000005),
-                                
                                 # if "parking" in self.yolo_data.object:
                                 for node_id, (x, y) in self.obstacle_node_positions.items():
                                     distance = np.sqrt((center_x - x) ** 2 + (center_y - y) ** 2)
@@ -777,6 +643,8 @@ class MPC():
                                     self.target_node = self.parking_nodes_id[0]
                                     self.process_and_publish_data(self.current_id_original,self.target_node)
 
+
+                                # TODO: Baha burada kaldın
                                 rospy.loginfo("parking_spot_is_full: %s", self.parking_spot_is_full)
                                 rospy.loginfo("parking_nodes_id: %s", self.parking_nodes_id)
 
@@ -935,7 +803,6 @@ class MPC():
                         self.crosswalk_update_time = rospy.Time.now()
                         self.last_update_time = rospy.Time.now()
 
-
                     else:
                         self.state = "keep lane"
                         rospy.loginfo("self.state: {}".format(self.state))
@@ -1022,16 +889,6 @@ class MPC():
                             print(f'Step {1} -> ID: {next_id}, X: {target_x:.2f}, Y: {target_y:.2f}, Yaw: {yaw:.2f} rad')
                             self.last_time_went_node = rospy.Time.now()
 
-                            if next_id == '55':
-                                self.distance_flag = False
-                            else:
-                                self.distance_flag = True
-
-                            # if next_id == '459':
-                            #     self.state_target = ca.DM([target_x, target_y, -1.57])
-                            #     self.distance_flag = False
-                            # else:
-                            #     self.state_target = ca.DM([target_x, target_y, yaw])
 
                             if next_id in self.parking_nodes_id:
                                 self.state_target = ca.DM([target_x, target_y, 0.0])
@@ -1039,25 +896,7 @@ class MPC():
                             else:
                                 self.state_target = ca.DM([target_x, target_y, yaw])
 
-                            # Engelle olan mesafeyi kontrol et
-                            # is_close_to_any_obstacle = any(
-                            #     np.sqrt((x0[0] - ox)**2 + (x0[1] - oy)**2) < 0.6 for ox, oy in zip(obs_x1, obs_y1)
-                            # )
-
-                            # if i == 2 and is_close_to_any_obstacle:
-                            #     ObstacleDetected = 1
-                            # elif i == 1 and not ObstacleDetected:
-                            #     xs = np.array([target_x, target_y, yaw])
-                            # elif i == 4 and ObstacleDetected:
-                            #     xs = np.array([target_x, target_y, yaw])
-
-                            # if i in [3, 1, 2, 4] and not is_close_to_any_obstacle:
-                            #     ObstacleDetected = 0
-                            # print("current_id",current_id)
-                            # print("next_id",next_id)
-
-                            
-  
+                        
                             self.goal_id = matching_entry  
                             if self.state == "keep lane":         
                                 self.last_update_time = rospy.Time.now()     
@@ -1148,9 +987,7 @@ class MPC():
         self.yolo_data = MekatronomYolo()
         self.yolo_data.object = data.object
         rospy.loginfo("self.yolo_data.object: {}".format(self.yolo_data.object))
-        # print("self.yolo_data.object",self.yolo_data.object)
-        # self.yolo_data.distance = data.distance
-        # print("self.yolo_data.distance",self.yolo_data.distance)
+
 
     def behaviourTimerCallback(self,event):
         rospy.loginfo("behaviourTimerCallback")
@@ -1166,16 +1003,12 @@ class MPC():
                 rospy.loginfo("behaviourtimercallback inside of it")
                 next_id = matching_pairs[0][1] 
                 
-                #print("self.pathGoalsYawDegree:",self.pathGoalsYawDegree)
-                #for i in range(1, 5):
-                    
                 matching_entry = next((entry for entry in self.pathGoalsYawDegreeCopy if entry[0] == next_id))
                 self.goal_id = matching_entry
                 if matching_entry:
                     target_x, target_y = matching_entry[1], matching_entry[2]
                     target_y = target_y
-                    #print("target_x",target_x)
-                    #print("target_y",target_y)
+
                     dx = target_x - self.position_x
                     dy = target_y - self.position_y
                     yaw = atan2(dy, dx)
@@ -1209,7 +1042,6 @@ class MPC():
 
                     print(f'Step {1} -> ID: {next_id}, X: {target_x:.2f}, Y: {target_y:.2f}, Yaw: {yaw:.2f} rad')
                     
-                    #self.state_target = ca.DM([target_x, target_y, 0.0])
 
                     self.state_target = ca.DM([target_x, target_y, yaw])
                     self.carControlPublisher()
@@ -1222,8 +1054,7 @@ class MPC():
         
             self.crosswalk_scenerio = False
             self.crosswalk_flag = False
-            # self.motorway_flag = False
-            # self.motorway_scenerio = False
+
 
             if self.obstacles_array:  
                 print("hi im here behavior")
@@ -1301,15 +1132,13 @@ class MPC():
 
                         print(f'Step {1} -> ID: {next_id}, X: {target_x:.2f}, Y: {target_y:.2f}, Yaw: {yaw:.2f} rad')
                         
-                        #self.state_target = ca.DM([target_x, target_y, 0.0])
 
                         self.state_target = ca.DM([target_x, target_y, yaw])
 
                 self.last_update_time = rospy.Time.now()
 
         if rospy.Time.now() - self.last_update_time >= rospy.Duration(5.0):
-            # rospy.loginfo(f"ID 8 saniye boyunca değişmedi: {self.goal_id}")
-            # rospy.loginfo("behaviourTimerCallback inside")
+
 
             if self.state == "waiting on intercept":
 
@@ -1320,10 +1149,6 @@ class MPC():
                 if matching_pairs:
                     next_id = matching_pairs[0][1]
                     
-
-                    #print("self.pathGoalsYawDegree:",self.pathGoalsYawDegree)
-                    #for i in range(1, 5):
-                        
                     matching_entry = next((entry for entry in self.pathGoalsYawDegree if entry[0] == next_id))
                     self.goal_id = matching_entry
                     if matching_entry:
@@ -1364,15 +1189,9 @@ class MPC():
 
                         print(f'Step {1} -> ID: {next_id}, X: {target_x:.2f}, Y: {target_y:.2f}, Yaw: {yaw:.2f} rad')
                         
-                        #self.state_target = ca.DM([target_x, target_y, 0.0])
-
                         self.state_target = ca.DM([target_x, target_y, yaw])
 
                 self.last_update_time = rospy.Time.now()
-
-
-
-
 
         else:
             pass
@@ -1385,30 +1204,21 @@ class MPC():
         # GraphML dosyasını okuma
         print("burdayım :",self.current_id," orjinal noktam  :",self.current_id_original)
 
-
-        #self.obs_dontuse=["360","314","321","344","315","270","367","64","169"]
         self.callnumber=self.callnumber+1
         stx = time.time()# dosyadan endge okuma işelmleri zaman ölçümü için
-        #0.003 saniye sürüyo her bi okuma her çağırmada 2 defa çağırmak yerine
-        #normal olanı başta bir defa çağırıp  her engel tespiti yapıp
-        # self.obs_dontuseya eleman eklediğimdede öbürünü çağırsam toplam süre 0.008 den 0.005 lere gerileyebilir
-        #edge ve node datalarını fonksiyonun dışından almam gerekir
+
         tree = ET.parse(self.file_path_original)
         root = tree.getroot()
-        # Düğüm verilerini çıkarma
         self.nodes_data = self.extract_nodes_data(root)
 
 
         self.obstacle_node_positions = {node_id: (x, y) for node_id, x, y in self.nodes_data if node_id in self.parking_nodes_id}
 
-        # print("nodes data ::::",self.nodes_data)
 
         self.edges_data, self.edges_data_true_ilkverisyon = self.extract_edges_data(root)
 
 
-        #print("nodes data ::::",self.edges_data)
         flagsolla=self.flagsolla
-        #self.flagsolla = 0#benim aptallığım her path çıkarma çağırıldığında sollamayı kapatıyor muşum eğer başka biyerdede solla 1 olmazsa solama kısmı kapalı olduğu için araç kendi üstünden dönmeye çalışıyo ama dönemiyo 
         for ciz in self.edges_data:#self.obs_dontuse listesindekilerden herhangi biri kesikli çizgi üstüne geliyo mu kontrolü
             for kx in self.obs_dontuse:
                 if  ciz[2]==True:#ciz[1]==kx and ciz[2]==True: yine benim aptallığım eğer flag sollaya daha once müdehale edilmemişse ve engel kalktığı senaryoda bu ife girmiycek kendi şeridine geri dönemiycek
@@ -1436,19 +1246,16 @@ class MPC():
 
 
 
-        #self.obs_dict = {node[0]: (node[1], node[2]) for node in self.nodes_data}#node dataya yeni düğümleri oluşturup burda self.nodes_data nın yerine koyucam
-        #obs_dict bütün nodeların sıra ile  numarasını ve içidede x ve y var
-        #print("//////////////////////////////////")
-        #print("node datas::::::",self.obs_dict)#burda noktlalarındictonaryde id:  (x,y) formatında
-
-
         noded,edged=self.extract_graph()# (nodedict,edgedict) döndürür
+
+        print("noded_first:",noded)
 
         #self.obs_dontuse=["360","314","321","344","315","270","367","64","169","326"]
 
         path_short=self.dijkstra(temp_source,temp_target,noded,edged,self.obs_dontuse)#nodedictionary =noded
         print("pathshort:",path_short)
         self.path_original = self.stformat(path_short)
+        print("noded_second:",noded)
         self.nodedatabest=noded
         print("pathoriginal:",self.path_original)
         #print(noded)
@@ -1499,31 +1306,6 @@ class MPC():
                 coords = self.obs_dict[target_id]
                 self.path.append((target_id, coords[0], coords[1]))
 
-        # print("\nself.path::::\n",self.path)
-        #print("**************************************************")
-        # print("SourceTargetNodes",self.SourceTargetNodes)
-        # print("**************************************************")
-        # print("**************************************************")
-        # print("SourceTargetNodes original",self.SourceTargetNodesOriginal)
-
-        # print("**************************************************")
-        #cv2.waitKey(100000)
-        # print("self.path::::",self.path)
-            # if source_id in self.obs_dict:
-            #     coords = self.obs_dict[source_id]
-            #     self.path.append((source_id, coords[0], coords[1]))
-
-        #print("**************************************************")
-        # print("SourceTargetNodes",self.SourceTargetNodes)
-        # print("**************************************************")
-        # print("**************************************************")
-        # print("SourceTargetNodes original",self.SourceTargetNodesOriginal)
-
-        # print("**************************************************")
-        #cv2.waitKey(100000)
-        # print("self.path::::",self.path)
-        #print("**************************************************")
-        #print("**************************************************")
 
         # Her bir nokta için bir sonraki nokta ile arasındaki açıyı hesaplama
         angles = []
@@ -1564,29 +1346,10 @@ class MPC():
             self.pathGoalsYawDegreeCopy = self.pathGoalsYawDegreeOriginal
             self.SourceTargetNodesCopy = self.SourceTargetNodesOriginal
             self.pathGoalsYawDegreecalled = True
-        
-        #print("raw edges data : ",self.edges_data)
-        #print("self.SourceTargetNodes", self.SourceTargetNodes)
-        #print("self.obs_dict", self.obs_dict)
-        #print("**************************************************")
-        #print("**************************************************")
-        #print("**************************************************")
-        #print("YawDegree", self.pathGoalsYawDegree)
-        #print("self.path", self.path)
-        #print(self.nodes_data
-        #print("stlist",stlist)
-        #print("newnodedictionary",newnodedictionary)
-
 
         # Data publishing simulation
         data_message = str(self.edges_data_true)
-     
-        # print("****************************************")
-        # print("****************************************")
-        # print("****************************************")
-        # print("****************************************")
 
-        # print("Graph data published:", data_message)
 
 
     def stformat(self,new_path):
@@ -1629,39 +1392,24 @@ class MPC():
                     if ciz[0]==node[0]:
                         sollacurrent=ciz[2]
                         break#fazladan dolaşmasın bi kere bulması yeterli
-           
-
-
-
+        
                 nodedict[node[0]]={'mesafe':inf,'atalist':[],'solla':sollacurrent,'x':node[1],'y':node[2]}#0  1 di   1  2 olarak düzelttim
 
-                #burda solla bilgisini sağlamamlazım  veri self.edgedatada var veri edge olarak onu nokta verisine çekmem lazım
-            
-
-                #print(" nokta  :::::::::::::::::::::::::::::::::::node:",node,"x:",node[1]," y:",node[2])
-                # key i id olan sırası ile mesafe ,parent(en kısay yoldaki köken düğüm), gezeldimi(0,1)  tutan dictionary
             for edge in graph_temp:
-               # print(edge[0],edge[1])
-                # sozlüğe yerleştirirken 1 key için var mi diye kontrol edicem varsa targeti valueya ekliycem yoksa oluşturup targeti valeuya ekliycem
-                #edge[0] source  : edge
+
                 temp=edge[0]
                 edgemesafe =1#edge 0 ve edge 1 i verip ikisi arası mesafeyi vericem
                 if temp in edgedict.keys():
-                    #targeti valeuya append et mesafeleri de burda value içinde tutmamlazım
-                    #edgedict[edge[0]]=(edgedict[edge[0]],(edge[1]))
+
                     edgedict[edge[0]].append([edge[1],1])
 
                 else:
                     edgedict[edge[0]]=[[edge[1],1]]
                     #tuple dan list tipine cevirdim
 
-                    #sozlukte yoksa da ekliycek
-                #print("edgedict :", edge[0],"  :",edgedict[edge[0]])
+
                 edgetemp =edgedict[edge[0]]
-                #for i in edgetemp:
-                 #  print("test",i," leng :")
-                #print(edgedict[edge[0]])
-                # bağzı düğümler dosyadada tekrara düşmüş ikitane 88 var
+
             return (nodedict,edgedict)
     
     def minyol(self,edge_curent_source):
@@ -1676,15 +1424,12 @@ class MPC():
                 min_id=edge
         return min_id
     def hedef_mesafe(self,X1,Y1,X2,Y2):
-        #kollara bakarken heapa kolları hedefe olan mesafelerine göre vermeyi deniyicem
 
-        #nodedicitonary den temp sourcela terget x y leini alıup mesafe çıkatıcam
         x1=float(X1)
         x2=float(X2)
         y1=float(Y1)
         y2=float(Y2)
-        #print("X1:",X1,"X2:",X2,"Y1:",Y1,"Y2:",Y2)
-        #print("x1:",x1,"x2:",x2,"y1:",y1,"y2:",y2)
+
 
         mesafe_hedef=math.sqrt(((x1-x2)*(x1-x2))+((y1-y2)*(y1-y2)))
         #print("mesafe fark var  ----------------------------------------:",mesafe_hedef)
@@ -1711,14 +1456,6 @@ class MPC():
                                     temppp.remove(test)
                             edgedictt[ed[0]]=temppp
 
-
-
-        #print("edgedictt:",edgedictt)
-        #print("-------------------------------")
-        #print("-------------------------------")
-        #print("-------------------------------")
-        #print("nodedickt:",nodedictt)
-        #print("-------------------------------")
 
         unvisited={n:float('inf') for n in edgedictt.keys()}
         #print("unvisited:",unvisited)
@@ -1753,33 +1490,18 @@ class MPC():
                 #print("komşu:",neighbor)
 
         node=target
-        #revPathString=node
-        #print("pathxxxx:",nodedictt["371"]['atalist'])
-        #print("---------------------------------------------------------------------------------------------")
-        #print("---------------------------------------------------------------------------------------------")
-        #print("path:",nodedictt[target]['atalist'])#ana çıktı yolu yazdırıyo yoruma aldım
-        #print("---------------------------------------------------------------------------------------------")
-        #print("---------------------------------------------------------------------------------------------")[ERROR] [1712402619.277089]: 'mpc' object has no attribute 'expath'
 
         nodedictt[target]['atalist']=nodedictt[target]['atalist']+[target]
         yolll=nodedictt[target]['atalist']
 
-        # print("visited:",visited)
-        # print("yol",yolll)
+
         if source in yolll and target in yolll:
-            # print("yol var@@@@@@@@@@@@@@@@@@@")
-            #burda yol var ama trafik ışığında veya dur tabelası durumunda yeni yolçıkartabiliyorken bi önceki çıkmış olan yolu takip etmesi gerektiği durum için if ekliycem 
-            #yol var  bi önceki yol ile kıyasla fark belli bir nokta sayısından fazla ise ve tabela veya trafik ışığı görüyorsa tampontakibi yapar gibi olanksımı uyguluycam
-            #tabela senaryosu
-            #
+
             trflstate=False#şimdilik false yapıyorum trafik ışığının kırmızı ise True olucak bu değişken 
             yayastate=False#yolda onümüze random noktada yayay çıkma senaryosunda bu true olucak
             expathstate=False#bir önceki yol kısa mı kullanılabilir mi çok kısamı gibi bi kontrol yapabilirim 
             if(trflstate or yayastate or expathstate ):
-                # print("kırmızı ışık bekliycem eski yolu kullanıcam yeni yol çıkarmıcam ")
-                #tampontakibi tepkisini yapıcam 
-                #random yaya gördüğümüz senaryoda yaya en yakın nodu dontuse a eklememiz lazım 
-                #değişken çakışması olmasın diye kopyaladığım değişkenlere xx ekledim
+
 
                 for tempstopxx in yasaklistesi:
                     if tempstopxx in self.expath:
@@ -1797,14 +1519,6 @@ class MPC():
                 nodedictt[befbagendxx]['atalist']=nodedictt[befbagendxx]['atalist']+[befbagendxx]
                 return nodedictt[befbagendxx]['atalist']
 
-
-
-
-
-
-
-
-
             else:#trafik ışığı kırmız değilse  yaya yoksa ve bi onceki yol düzgün değilse  çıkartılan yolu versin yani algoritmanın orijinal hali ile tepki versin 
                 #orijinal hali
 
@@ -1813,10 +1527,7 @@ class MPC():
 
                 return nodedictt[target]['atalist']
         else:
-            print("yol yok###################")
-            #burda bekleme calback çalışıcak
-            #yada bu kısmı dışarıda halledicem
-            #print(nodedictt)
+
             newtargetn=""
             
             for tempstopx in yasaklistesi:
@@ -1831,13 +1542,7 @@ class MPC():
                 befbagend=self.expath[indexnoEX-2]#sourn burda olabillir tek nokta kalan path de indexi bir geriye alıp patlıyor olabilir
             else :
                 befbagend=self.expath[indexnoEX]#bunu test et
-            # print("before bagend",befbagend)
 
-            #bagend in bi oncesinin ata listesi ni versem yeticek
-            #print("test ::",edgedictt)
-
-            # print("bagend :::",bagend)
-            #print("bag path :",nodedictt[bagend]['atalist'])#burda bagend deki nokta ya eski source dan ulaşamadığımız için atalistesi boş ama  bi on cesini vermem lazim benim
             nodedictt[befbagend]['atalist']=nodedictt[befbagend]['atalist']+[befbagend]
             return nodedictt[befbagend]['atalist']
 
@@ -1876,13 +1581,6 @@ class MPC():
         cv2.waitKey(1)
 
     def beizer(self,path,node_d):
-        #node_d nin y si hatalı geliyo ama araba düzgün sürüyo ?????????? 105 de y değiştirilmiş d1 = 13.72-float(data.text)  # 'y' koordinatı
-        #hem beizeri hemde source targetteki gibi edge formatına getiricem
-        #print("node data _d:",node_d)#nose_dict node_d çok kalabalık daha saddeleştirip dictionary   id: (x,y),(x,y) formatına getiricem
-        #print("----------------------")
-        #print("--------------------------------------------------------------------------------")
-        #print("node data 470 :",node_d['470']['x']," ",node_d['470']['y'])
-        #print("-----********************************--------------------------------------------------")
         new_node_data={}
         for idkey in node_d.keys():
             #print(idkey)
@@ -1891,12 +1589,6 @@ class MPC():
         #print("new_node_data:",new_node_data)
         new_point_counter=600#yeni düğmleri çakışma olmasın diye 600 den başlattım
         new_path=path.copy()#path in kopyasını aldım değişiklikleri ona uyguluycam itarete ederken  list den eleman silip ekliyince hata veriyo
-
-
-
-        #beizer1:verilen path de beizer uygulanması gereken yerleri bul açı kontrolü
-        #print("beizer path :",path)
-
 
         #print("----------------------")
         path_length=len(path)
@@ -1910,9 +1602,7 @@ class MPC():
                 angel_rad1=1.57#radyan cinsinden 90derece
             else:
                 angel_rad1=math.atan((node_d[path[f]]["y"]-node_d[path[f+1]]["y"])/(node_d[path[f]]["x"]-node_d[path[f+1]]["x"]))#arctan
-                #math.atan radayan cinsinden  a numeric value between -PI/2 and PI/2 radians.
-                #print("y deki fark :",abs(node_d[path[f]]["y"]-node_d[path[f+1]]["y"]),"x deki fark:",abs(node_d[path[f]]["x"]-node_d[path[f+1]]["x"]))
-                #print("x1:",node_d[path[f]]["x"],"x2:",node_d[path[f+1]]["x"],"y1:",node_d[path[f]]["y"],"y2:",node_d[path[f+1]]["y"])
+
             angel_deg1=angel_rad1*57.3
             #print("açı bir :",angel_deg1)
 
@@ -1921,9 +1611,7 @@ class MPC():
                 angel_rad2=1.57#radyan cinsinden 90derece
             else:
                 angel_rad2=math.atan((node_d[path[f+1]]["y"]-node_d[path[f+2]]["y"])/(node_d[path[f+1]]["x"]-node_d[path[f+2]]["x"]))#arctan
-                #math.atan radayan cinsinden  a numeric value between -PI/2 and PI/2 radians.
-                #print("y deki fark :",abs(node_d[path[f]]["y"]-node_d[path[f+1]]["y"]),"x deki fark:",abs(node_d[path[f]]["x"]-node_d[path[f+1]]["x"]))
-                #print("x1:",node_d[path[f]]["x"],"x2:",node_d[path[f+1]]["x"],"y1:",node_d[path[f]]["y"],"y2:",node_d[path[f+1]]["y"])
+
             angel_deg2=angel_rad2*57.3
             #print("açı iki :",angel_deg2)
 
@@ -1986,25 +1674,9 @@ class MPC():
         #print("len :",pathlen)
         for n_edge in range(pathlen-1):
             source_target.append((new_new_path[n_edge],new_new_path[n_edge+1],True))
-        #print("formattli:",source_target)
-        #print("--------------------------------------------")
-        #print("node data:",new_node_data)
-
-    
-        # self.plotbfmc(new_node_data,new_path)
-
 
         return new_node_data,source_target
 
-        #edge haline getirip return edicem
-
-        #print("new_node_data new new :",new_node_data)
-
-        #beizer2:3 noktayı bulunca beizer ile ara noktalar oluşturup path de araya inssert edicem
-
-        #formatlama:düğüm düğüm olan path i edge edge hale gertip return edicem
-
- 
 
 
     def extract_edges_data(self, root):
@@ -2080,29 +1752,6 @@ class MPC():
         # rospy.loginfo("Received IMU data yaw: %f", self.yaw_rad)
         self.IMU_cb = True
 
-
-        # self.imu_value = Imu()
-
-
-        # self.imu_value.header.stamp = rospy.Time.now()
-        # self.imu_value.header.frame_id = "automobile_chassis_link"
-        # # self.imu_value.header.frame_id = "map"
-
-        # self.imu_value.linear_acceleration.x = data.accelx
-        # self.imu_value.linear_acceleration.y = data.accely
-        # self.imu_value.linear_acceleration.z = data.accelz
-
-        # quaternion_ = tf.transformations.quaternion_from_euler(data.roll, data.pitch, data.yaw)
-        # self.imu_value.orientation.x = quaternion_[0]
-        # self.imu_value.orientation.y = quaternion_[1]
-        # self.imu_value.orientation.z = quaternion_[2]
-        # self.imu_value.orientation.w = quaternion_[3]
-
-        # self.imu_value.orientation_covariance = [-1] + [0] * 8
-        # self.imu_value.angular_velocity_covariance = [-1] + [0] * 8
-        # self.imu_value.linear_acceleration_covariance = [-1] + [0] * 8
-
-        # self.imu_pub.publish(self.imu_value)
     
     #Callbacks Finish    
         
@@ -2144,13 +1793,7 @@ class MPC():
         PassedTime = current_time - self.prev_time
         # rospy.loginfo("Elapsed time: %.4f seconds", PassedTime)
         self.prev_time = current_time
-        # print("self.nodes_data",self.nodes_data)
-        # print("self.edges_data",self.edges_data)
-        # print("self.edges_data_true",self.edges_data_true)
-        # print("self.SourceTargetNodes",self.SourceTargetNodes)
-        # print("self.obs_dict",self.obs_dict)
-        # print("self.pathGoalsYawDegree",self.pathGoalsYawDegree)
-        # print("self.path",self.path )
+
 
 
     #Debug Finish

@@ -11,7 +11,7 @@
   </include>
 
   <node pkg="tf" type="static_transform_publisher" name="map_to_odom_broadcaster"
-        args="0 0 0 0 0 0 map odom 10" />
+        args="0 0 0 0 0 0 map odom 100" />
 
   <param name="robot_description"
          command="$(find xacro)/xacro '$(find models_pkg)/rcCar_assembly/model.urdf'"/>
@@ -24,19 +24,17 @@
     <param name="robot_description" command="$(find xacro)/xacro '$(find models_pkg)/rcCar_assembly/model.urdf'" />
   </node>
   
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization">
+    <rosparam command="load" file="$(find sim_pkg)/config/ekf_localization.yaml"/> 
+  </node>
+
   <node pkg="sim_pkg" type="delay.sh" args="1 sim_pkg car.launch" name="car" output="screen"/>
 
   <!-- <node pkg="sim_pkg" type="delay.sh" args="1 sim_pkg pedestrian_objects.launch"  name="pedestrian_objects"   output="screen"/> -->
   <!-- <node pkg="sim_pkg" type="delay.sh" args="1 sim_pkg traffic_lights.launch"      name="traffic_lights"       output="screen"/> -->
 
-  <!-- <node name="tf_publisher" pkg="example" type="tfpublisher.py" output="screen"/> -->
+  <node name="launch_obstacle_detector" pkg="sim_pkg" type="launch_obstacle_detector.sh" output="screen"/>
+  <node name="rviz" pkg="sim_pkg" type="rviz.sh" output="screen"/>
 
-  <!-- <node name="launch_obstacle_detector" pkg="sim_pkg" type="launch_obstacle_detector.sh" output="screen"/> -->
-  
-  <!-- <node name="rviz" pkg="sim_pkg" type="rviz.sh" output="screen"/> -->
-  
-  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_localization">
-    <rosparam command="load" file="$(find sim_pkg)/config/ekf_localization.yaml"/> 
-  </node>
   
 </launch>

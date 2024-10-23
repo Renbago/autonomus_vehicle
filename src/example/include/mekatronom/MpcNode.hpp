@@ -25,7 +25,7 @@
 #include <filesystem>
 #include <locale.h>  
 #include <nlohmann/json.hpp>
-// #include <mpc_start_setting2.h>
+#include "obstacle_detector/Obstacles.h"
 
 using namespace casadi;
 using json = nlohmann::json;
@@ -40,9 +40,6 @@ public:
   
   ros::Publisher carControl_pub_;
 
-  // std::vector<std::tuple<std::string, double, double>> extract_nodes_data(pugi::xml_node root);
-  // std::vector<std::tuple<std::string, std::string, bool>> extract_edges_data(pugi::xml_node root);
-  // std::vector<int> finding_path(int temp_source_, int temp_target_, std::map<int, std::pair<double, double>>& noded_, std::map<int, std::pair<int, int>>& edged_, std::vector<std::string>& obs_dontuse_);
   double new_point_counter_ = 600;
 
   typedef struct {
@@ -55,13 +52,6 @@ public:
   NodeInfo node_info_;
 
   typedef struct {
-    std::string node_id;
-    std::string node_name;
-    bool pass_through;
-  } EdgeInfo;
-  EdgeInfo edge_info_;
-
-  typedef struct {
     double x;
     double y;
     double z;
@@ -70,6 +60,13 @@ public:
     double yaw;
   } Pose;
   Pose localisation_data_;
+
+  typedef struct {
+    int obstacles_checking;
+    int watchdogTimer;
+    int went_node;
+  } Timers;
+  Timers last_update_time_;
 
   typedef struct {
     double Q_x;
@@ -92,7 +89,7 @@ public:
     std::vector<std::string> parking_nodes_id{"900","901","902","903","904","910","911","912","913","914"};
     std::vector<std::string> parking_spot_is_full;
     std::string source_node{"263"};
-    std::string target_node{"244"};
+    std::string target_node{"900"};
     std::vector<std::string> dont_check_obstacles_this_nodes{"228","229","230","231","232","233","234","235","236","237","238","239","240"};
     std::vector<std::string> excluded_nodes = {"273"};
     std::vector<std::string> obstacles_array = {" "};
@@ -108,6 +105,8 @@ public:
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeOriginal;
     std::vector<std::tuple<int, double, double, double>> pathGoalsYawDegreeCopy;
     std::map<std::string, std::pair<double, double>> obstacle_node_positions;
+    bool pass_through{false};
+    std::map<std::string, MpcNode::NodeInfo> node_dict;
   } djikstra_outputs;
   djikstra_outputs djikstra_outputs_; 
 
@@ -136,29 +135,24 @@ public:
   std::vector<std::tuple<int, int, bool>> edges_data_true_ilkverisyon_;
   std::string car_behaviour_state_ = "keep_lane";
 
-  std::vector<int> center_x_, center_y_;
+  std::vector<double> center_x_, center_y_;
   std::vector<std::tuple<std::string, std::string, bool>> pathOriginal_;
   std::vector<std::tuple<int, double, double>> path_;
   std::map<std::string, std::pair<double, double>> new_node_data_;
   std::map<std::string, std::pair<double, double>> obs_dict_;
   std::vector<std::string> expath_;
   std::vector<std::string> shortest_path_;
-  
+  std::tuple<int, double, double, double> goal_id_;
+
   int checking_counter_{0};
   bool pathGoalsYawDegreecalled_{false};
-  
-  std::pair<std::map<int, std::pair<double, double>>, std::map<int, std::pair<int, int>>> extract_graph();
-  std::vector<std::tuple<int, int, bool>> stformat(const std::vector<int>& path_short_);
-  std::pair<std::map<int, std::pair<double, double>>, std::vector<std::tuple<int, int, bool>>> beizer(const std::vector<int>& path_short_, std::map<int, std::pair<double, double>>& noded_);
-  std::vector<std::string> dijkstra(const std::string& source, const std::string& target,
-                                    std::map<std::string, NodeInfo>& nodedictt,
-                                    std::map<std::string, std::vector<std::pair<std::string, double>>>& edgedictt,
-                                    const std::vector<std::string>& obs_dontuse,
-                                    MpcNode& mpc_node);
+  bool distance_flag_{false};
+  std::string closest_node_id_original_;
+  std::string closest_node_id_;
 
   std::string graphml_file_path_;
   std::string scenerio_name_;
-  std::string graphml_filename_ = "gercek2.graphml";
+  std::string graphml_filename_ = "fixed2.graphml";
 
 
   // Public Functions for mpc_running.h
@@ -181,17 +175,17 @@ public:
 private:
   
   // Private Functions
-  void imageCb(const sensor_msgs::Image::ConstPtr& msg);
+  // void imageCb(const sensor_msgs::Image::ConstPtr& msg);
   void controlCb(const ros::TimerEvent&);
   void imuCb(const sensor_msgs::Imu::ConstPtr& msg);
   void localisationCb(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr& msg); 
+  void obstacleDetectionCb(const obstacle_detector::Obstacles::ConstPtr& msg);
   void process_and_publish_data(int temp_source, int temp_target);
   
   void function_one();
   void get_parameters();
 
-  // Private Variables
-  int control_rate_;
+  int control_rate_{30};
   bool mpc_started_{ false };
   bool imu_data_received_ = false;
   bool localisation_data_received_ = false;
@@ -203,6 +197,7 @@ private:
   ros::Subscriber imu_sub_;
   ros::Subscriber localisation_sub_;  
   ros::Subscriber image_sub_;
+  ros::Subscriber obstacle_detection_sub_;
   // Publishers
   ros::Publisher cmd_pub_;
   // Node Handle
@@ -210,8 +205,6 @@ private:
   ros::NodeHandle nh_local_;
 
   sensor_msgs::Image image_data_;
-
-
 
 };
 
@@ -229,7 +222,7 @@ std::ostream& operator<<(std::ostream& os, const std::tuple<Args...>& t) {
 }
 
 #include "mekatronom/utilities/djikstra.h"
+#include "mekatronom/utilities/traffic_sign_manager.h"
 #include "mekatronom/utilities/mpc_running.h"
 #include "mekatronom/utilities/mpc_start_setting.h"
-#include "mekatronom/utilities/traffic_sign_manager.h"
 
