@@ -88,6 +88,10 @@ at one terminal:
 the second terminal:
 ```rosrun example mpc_node```
 
+or
+
+```rosrun example mpc.py```
+
 # IMPORTANT
 The ```mpc_node.cpp``` version has not been fully finished, you can run ```rosrun example mpc.py``` when launched ```map_with_car.launch``` also obstacle_detector will be executed.
 
@@ -104,6 +108,10 @@ The ```mpc_node.cpp``` version has not been fully finished, you can run ```rosru
 # From added RVIZ:
 
 <img src="https://github.com/KOU-Mekatronom/Simulator/blob/main/rviz.png" width=30% height=30%>
+
+# Obstacle detection
+
+<img src="https://github.com/KOU-Mekatronom/Simulator/blob/main/obstacle_detection.png" width=30% height=30%>
 
 # Traffic lights plugin:
 

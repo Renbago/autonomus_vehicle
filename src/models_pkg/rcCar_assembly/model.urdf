@@ -5,28 +5,28 @@
     <child link="automobile_wheel_rear_left_link_rim"/>
     <origin xyz="-0.152  0.081  0" rpy="1.5708 0     0"/>
     <axis xyz="0 -1  0"/>
-    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="1.0" velocity="1.0"/>
   </joint>
   <joint name="automobile_joint_rightrear_rim" type="revolute">
     <parent link="automobile_chassis_link"/>
     <child link="automobile_wheel_rear_right_link_rim"/>
     <origin xyz="-0.152 -0.081  0" rpy="1.5708 0     0"/>
     <axis xyz="0 -1  0"/>
-    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="1.0" velocity="1.0"/>
   </joint>
   <joint name="automobile_joint_leftfront_steer" type="revolute">
     <parent link="automobile_chassis_link"/>
     <child link="automobile_steer_left_link_steer"/>
     <origin xyz="0.112   0.07249 0" rpy="1.5708 0     0"/>
     <axis xyz="0  0 -1"/>
-    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="1.0" velocity="1.0"/>
   </joint>
   <joint name="automobile_joint_rightfront_steer" type="revolute">
     <parent link="automobile_chassis_link"/>
     <child link="automobile_steer_right_link_steer"/>
     <origin xyz="0.112   -0.07249  0" rpy="1.5708 0     0"/>
     <axis xyz="0  0 -1"/>
-    <limit lower="-1.79769e+308" upper="1.79769e+308" effort="-1.0" velocity="-1.0"/>
+    <limit lower="-1.5708" upper="1.5708" effort="1.0" velocity="1.0"/>
   </joint>
   <joint name="automobile_joint_rightfront_rim" type="revolute">
     <parent link="automobile_steer_right_link_steer"/>

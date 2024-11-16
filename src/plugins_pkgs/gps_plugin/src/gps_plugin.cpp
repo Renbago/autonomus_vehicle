@@ -27,8 +27,8 @@ namespace gazebo
             this->nodeHandle.reset(new ros::NodeHandle("localisationNODEvirt"));
             this->localisationPublisher = this->nodeHandle->advertise<geometry_msgs::PoseWithCovarianceStamped>("/automobile/localisation", 10);
 
-            // Set up a ROS timer to call OnUpdate every second
-            this->timer = this->nodeHandle->createTimer(ros::Duration(0.01), &GPS::OnTimerEvent, this);
+            // Set up a ROS timer to call OnUpdate if you want more realistic increase the duration
+            this->timer = this->nodeHandle->createTimer(ros::Duration(0.00001), &GPS::OnTimerEvent, this);
         }
 
         void OnTimerEvent(const ros::TimerEvent&)

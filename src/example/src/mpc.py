@@ -81,12 +81,20 @@ class MPC():
 
         #sükrü pathfinding icin
         self.source_node="263" #472   
-        self.target_node="244" #197  #901
+        self.target_node="225" #197  #901
         self.current_id=self.source_node
         self.current_id_original=self.source_node
         #newPathFinding
-        self.graphml_file_path = rospy.get_param('~graphml_file_path', '/home/baha/autonomus_ws/src/autonomus_vehicle/src/example/graphml/fixed2.graphml')#sollamalı 
-        self.file_path_original ='/home/baha/autonomus_ws/src/autonomus_vehicle/src/example/graphml/gercek2.graphml'
+        self.graphml_file_path = os.path.expanduser(
+            rospy.get_param(
+                '~graphml_file_path', 
+                '~/autonomus_ws/src/autonomus_vehicle/src/example/graphml/fixed2.graphml'
+            )
+        )
+
+        self.file_path_original = os.path.expanduser(
+            '~/autonomus_ws/src/autonomus_vehicle/src/example/graphml/gercek2.graphml'
+        )
         self.callnumber=0
         self.new_point_ctr=600
         self.obs_dontuse = ["273"]
@@ -226,7 +234,7 @@ class MPC():
             Q_y = rospy.get_param('~Q_y', 1)
             Q_theta = rospy.get_param('~Q_theta', 1)
             R1 = rospy.get_param('~R1', 1.0)
-            R2 = rospy.get_param('~R2', 1.8)
+            R2 = rospy.get_param('~R2', 1.4)
             step_horizon = rospy.get_param('~step_horizon', 0.2)
             N = rospy.get_param('~N', 12)
             rob_diam = rospy.get_param('~rob_diam', 0.354)
@@ -895,6 +903,7 @@ class MPC():
                                 self.distance_flag = False
                             else:
                                 self.state_target = ca.DM([target_x, target_y, yaw])
+                                self.distance_flag = True
 
                         
                             self.goal_id = matching_entry  
@@ -906,9 +915,8 @@ class MPC():
                             self.state_target = ca.DM([self.position_x, self.position_y, self.yaw_rad])
                             self.last_update_time = rospy.Time.now()
 
-                if self.distance_flag == True and self.goal_id != '459':
-                        
-                        
+                if self.distance_flag == True:
+                                           
                         # if self.traffic_light_master[0] == 2 and self.current_id =="489":
                         #     rospy.loginfo("self.traffic_light_master[0] == 0")
                         #     self.steerAngle = math.degrees(0.0) 
