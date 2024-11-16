@@ -1,25 +1,14 @@
-# Use the ROS Noetic base image
 FROM osrf/ros:noetic-desktop-full
 
-# Set the default shell to bash
 SHELL ["bash", "-c"]
 
-# Define the USERNAME variable
-ARG USERNAME=baha
+ARG USERNAME=Renbago
+RUN useradd -m -s /bin/bash $USERNAME && \
+    echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers && \
+    chown -R $USERNAME:$USERNAME /home/$USERNAME
 
-# Create the user with the USERNAME variable
-RUN useradd -m -s /bin/bash $USERNAME
-
-# Allow the user to use sudo without a password
-RUN echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-
-# Set ownership of the home directory to the new user
-RUN mkdir -p /home/$USERNAME && chown -R $USERNAME:$USERNAME /home/$USERNAME
-
-# Switch to root to install necessary tools and dependencies
 USER root
 
-# Install necessary tools and dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     gnupg2 \
@@ -59,12 +48,17 @@ RUN mkdir -p build && cd build && cmake -DWITH_IPOPT=true .. && make -j$(nproc)
 USER root
 RUN cd /home/$USERNAME/casadi/build && make install
 
-# Set up Catkin workspace
+#This casadi is for python version i did not include the local path for pyton codes.
+RUN pip3 install casadi  
+
+# Setting up Catkin workspace
 WORKDIR /home/$USERNAME
 RUN mkdir -p autonomus_ws/src && chown -R $USERNAME:$USERNAME autonomus_ws
 RUN cd autonomus_ws/src && git clone -b devel https://github.com/Renbago/autonomus_vehicle.git
+WORKDIR /home/$USERNAME/autonomus_ws
+RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
 
-# Set up bash-completion and ROS environment variables in a single block
+# Here is setting the necessery gazebo and ros package  and also chmod+x all of it.
 USER $USERNAME
 RUN echo "if [ -f /etc/bash_completion ]; then" >> ~/.bashrc && \
     echo "  . /etc/bash_completion" >> ~/.bashrc && \
