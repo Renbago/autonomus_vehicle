@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y \
     ros-noetic-std-msgs \
     ros-noetic-rospy \
     ros-noetic-roscpp \
+    ros-noetic-map-server \
     ros-noetic-sensor-msgs \
     ros-noetic-message-generation \
     ros-noetic-message-runtime \
@@ -56,7 +57,7 @@ WORKDIR /home/$USERNAME
 RUN mkdir -p autonomus_ws/src && chown -R $USERNAME:$USERNAME autonomus_ws
 RUN cd autonomus_ws/src && git clone -b devel https://github.com/Renbago/autonomus_vehicle.git
 WORKDIR /home/$USERNAME/autonomus_ws
-RUN /bin/bash -c '. /opt/ros/noetic/setup.bash; catkin_make'
+RUN /bin/bash -c '. /opt/ros/noetic/setup.bash'    
 
 # Here is setting the necessery gazebo and ros package  and also chmod+x all of it.
 USER $USERNAME
