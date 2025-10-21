@@ -3,12 +3,9 @@ services:
   autonomous_ws:
     build: .
     volumes:
-      - type: bind 
-        source: /tmp/.X11-unix
-        target: /tmp/.X11-unix    
       - type: bind
-        source: /etc/timezone
-        target: /etc/timezone     
+        source: /tmp/.X11-unix
+        target: /tmp/.X11-unix
       - type: bind
         source: /dev
         target: /dev  
