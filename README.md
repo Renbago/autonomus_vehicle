@@ -60,6 +60,12 @@ Follow these steps to get your project up and running in a Docker environment.
 
 ```docker-compose build --no-cache```
 
+and u should also install:
+```nvidia docker compose```
+
+and open this before running docker:
+```xhost +local:docker```
+
 2.If you've just made changes to your application code or Dockerfile and want to rebuild the image and start the containers is sufficient and faster;
 
 ```docker-compose up -d --build``` 
@@ -82,10 +88,16 @@ if you want access from terminal run this command ```docker exec -it autonomous_
 This will open a new instance of Visual Studio Code that is connected to the file system within the Docker container, allowing you to develop and debug your application directly inside the container.
 
 # For running the project:
+first build the workspace:
+
+```cd autonomous_ws && catkin_make && source devel/setup.bash```
+
 at one terminal:
+
 ```roslaunch sim_pkg map_with_car.launch``` 
 
 the second terminal:
+
 ```rosrun example mpc_node```
 
 # IMPORTANT

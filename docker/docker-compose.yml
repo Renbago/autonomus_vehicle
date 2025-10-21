@@ -11,10 +11,12 @@ services:
         target: /dev  
     device_cgroup_rules:
       - 'c 81:* rmw'
-      - 'c 189:* rmw'      
+      - 'c 189:* rmw'
     environment:
-      - DISPLAY=:1
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1
       - TZ=Turkey
     container_name: autonomous_ws
     command: /bin/bash
     tty: true
+    stdin_open: true
